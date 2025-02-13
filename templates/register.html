@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Registro - Frecomu</title>
+  <!-- Inclua os scripts do Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script>
+    // Substitua os valores abaixo pelos dados do seu projeto Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
+      authDomain: "frecomu.firebaseapp.com",
+      databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
+      projectId: "frecomu",
+      storageBucket: "frecomu.firebasestorage.app",
+      messagingSenderId: "514151976144",
+      appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
+      measurementId: "G-7WVRRMF51Y"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .container { max-width: 400px; margin: auto; }
+    input { width: 100%; padding: 10px; margin: 5px 0; }
+    button { width: 100%; padding: 10px; }
+    #error { color: red; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Criar Conta</h1>
+    <input type="text" id="displayName" placeholder="Nome de exibição">
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Senha">
+    <button id="registerBtn">Registrar</button>
+    <p id="error"></p>
+    <p>Já possui conta? <a href="/login">Faça login aqui</a>.</p>
+  </div>
+  
+  <script>
+    document.getElementById("registerBtn").addEventListener("click", function(){
+      const displayName = document.getElementById("displayName").value;
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      
+      firebase.auth().createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // Atualiza o perfil para definir o nome de exibição
+          userCredential.user.updateProfile({
+            displayName: displayName
+          }).then(() => {
+            // Conta criada e nome definido – redireciona para a tela de salas
+            window.location.href = "/";
+          }).catch((error) => {
+            document.getElementById("error").innerText = error.message;
+          });
+        })
+        .catch((error) => {
+          document.getElementById("error").innerText = error.message;
+        });
+    });
+  </script>
+</body>
+</html>
