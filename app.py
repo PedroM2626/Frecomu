@@ -24,8 +24,8 @@ migrate = Migrate(app, db)
 rooms = {}
 # Exemplo:
 # rooms = {
-#     "geral": {"private": False, "password": None},
-#     "amigos": {"private": True, "password": "123456"}
+#     "geral": {"private": False, "password": None, "owner": "nome@exemplo.com"},
+#     "amigos": {"private": True, "password": "123456", "owner": "nome2@exemplo.com"}
 # }
 
 # Modelo de Mensagem atualizado (suporta arquivos)
@@ -34,14 +34,14 @@ class Message(db.Model):
     username = db.Column(db.String(80), nullable=False)
     room = db.Column(db.String(80), nullable=False)
     msg = db.Column(db.Text, nullable=True)  # Pode ser vazio para mensagens de áudio
-    file_url = db.Column(db.String(255), nullable=True)  # URL do arquivo
+    file_url = db.Column(db.String(255), nullable=True)  # URL do arquivo (áudio, vídeo, documento)
     file_type = db.Column(db.String(50), nullable=True)  # 'audio', 'video', 'document'
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     reply_to = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=True)
     parent = db.relationship('Message', remote_side=[id], uselist=False)
     reactions = db.relationship('Reaction', backref='message', lazy=True)
 
-# Modelo de Reação
+# Modelo de Reação permanece o mesmo
 class Reaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
@@ -49,12 +49,12 @@ class Reaction(db.Model):
     emoji = db.Column(db.String(10), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-# Rota para servir arquivos enviados
+# Rota para servir arquivos enviados (uploads)
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# Rotas de autenticação
+# Rotas de autenticação (login e register) devem existir
 @app.route("/login")
 def login():
     return render_template("login.html")
@@ -71,18 +71,18 @@ def index():
     
     if request.method == "POST":
         if room_param:
-            # Modo "entrar": o username já vem preenchido via Firebase
+            # Modo "entrar" na sala (username preenchido via Firebase)
             username = request.form.get("username", "").strip()
             room_name = room_param
             entered_password = request.form.get("password", "").strip()
             if room_name not in rooms:
                 error = "Sala não existe."
             else:
-                room = rooms[room_name]
-                if room["private"]:
+                room_info = rooms[room_name]
+                if room_info["private"]:
                     if not entered_password:
                         error = "Senha é obrigatória para entrar nessa sala."
-                    elif entered_password != room["password"]:
+                    elif entered_password != room_info["password"]:
                         error = "Senha incorreta."
                 if not username:
                     error = "Você deve inserir seu nome."
@@ -91,7 +91,7 @@ def index():
                     session["room"] = room_name
                     return redirect(url_for("chat"))
         else:
-            # Modo "criar": criar nova sala
+            # Modo "criar" sala
             room_name = request.form.get("room_name", "").strip()
             is_private = request.form.get("is_private") == "on"
             password = request.form.get("password", "").strip() if is_private else None
@@ -100,10 +100,11 @@ def index():
             elif room_name in rooms:
                 error = "Essa sala já existe."
             else:
-                rooms[room_name] = {"private": is_private, "password": password}
+                # Armazena o usuário que criou a sala como owner
+                rooms[room_name] = {"private": is_private, "password": password, "owner": session.get("username")}
                 return redirect(url_for("index", room=room_name))
     
-    return render_template("index.html", rooms=rooms, error=error, room=room_param)
+    return render_template("index.html", rooms=rooms, error=error, room=room_param, current_user=session.get("username"))
 
 # Rota do chat
 @app.route("/chat")
@@ -127,6 +128,37 @@ def upload():
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
     return jsonify({"url": url_for('uploaded_file', filename=filename), "file_type": file.mimetype})
+
+# Rota para editar o nome da sala (apenas para o owner)
+@app.route("/edit_room", methods=["POST"])
+def edit_room():
+    old_room = request.form.get("old_room")
+    new_room = request.form.get("new_room", "").strip()
+    if old_room not in rooms:
+        return jsonify({"error": "Sala não existe."}), 400
+    if rooms[old_room]["owner"] != session.get("username"):
+        return jsonify({"error": "Você não é o criador desta sala."}), 403
+    if new_room in rooms:
+        return jsonify({"error": "O novo nome já está em uso."}), 400
+    # Atualiza a sala: copia o conteúdo para a nova chave e remove a antiga
+    room_info = rooms.pop(old_room)
+    rooms[new_room] = room_info
+    if session.get("room") == old_room:
+        session["room"] = new_room
+    return jsonify({"new_room": new_room}), 200
+
+# Rota para excluir a sala (apenas para o owner)
+@app.route("/delete_room", methods=["POST"])
+def delete_room():
+    room = request.form.get("room")
+    if room not in rooms:
+        return jsonify({"error": "Sala não existe."}), 400
+    if rooms[room]["owner"] != session.get("username"):
+        return jsonify({"error": "Você não é o criador desta sala."}), 403
+    rooms.pop(room)
+    if session.get("room") == room:
+        session.pop("room", None)
+    return jsonify({"deleted_room": room}), 200
 
 # SocketIO – Eventos para chat e reações
 @socketio.on("join")
