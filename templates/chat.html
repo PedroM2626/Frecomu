@@ -96,7 +96,7 @@
     <div class="container">
       <a class="navbar-brand" href="/">Frecomu</a>
       <div class="collapse navbar-collapse justify-content-end">
-        <span class="navbar-text text-white me-2" id="userName"></span>
+        <span class="navbar-text text-white me-2" id="userName">{{ username }}</span>
         <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
       </div>
     </div>
@@ -113,7 +113,20 @@
               {{ message.parent.username }}: {{ message.parent.msg }}
             </div>
           {% endif %}
-          <span class="message-content">{{ message.username }}: {{ message.msg }}</span>
+          <span class="message-content">
+            {{ message.username }}:
+            {% if message.file_url %}
+              {% if message.file_type.startswith("audio") %}
+                <audio controls src="{{ message.file_url }}"></audio>
+              {% elif message.file_type.startswith("video") %}
+                <video controls width="250" src="{{ message.file_url }}"></video>
+              {% else %}
+                <a href="{{ message.file_url }}" target="_blank">Download Documento</a>
+              {% endif %}
+            {% else %}
+              {{ message.msg }}
+            {% endif %}
+          </span>
           {% if message.username == username and message.username != "Sistema" %}
             <button class="btn btn-sm btn-warning ms-2 edit-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Editar</button>
             <button class="btn btn-sm btn-danger ms-2 delete-btn" data-id="{{ message.id }}">Excluir</button>
@@ -134,17 +147,19 @@
       <span class="close-reply" onclick="cancelReply()">×</span>
     </div>
     
-    <!-- Input para enviar mensagens -->
+    <!-- Input para enviar mensagens e botão para envio de arquivo -->
     <div class="input-group mt-3">
       <input type="text" id="mensagem" class="form-control" placeholder="Digite sua mensagem...">
+      <input type="file" id="fileInput" style="display:none;">
+      <button id="uploadBtn" class="btn btn-secondary">📎</button>
       <button id="enviar" class="btn btn-primary">Enviar</button>
     </div>
   </div>
   
+  <!-- Bibliotecas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
   <script>
-    // Variável para armazenar o ID da mensagem que está sendo respondida
     let replyToMessageId = null;
 
     function cancelReply() {
@@ -182,7 +197,20 @@
           messageDiv.append(replySnippet);
         }
         
-        let messageContent = $('<span class="message-content">').text(data.username + ': ' + data.msg);
+        let content = data.username + ': ';
+        if (data.file_url) {
+          // Renderiza players conforme o tipo de arquivo
+          if (data.file_type.startsWith("audio")) {
+            content += '<audio controls src="' + data.file_url + '"></audio>';
+          } else if (data.file_type.startsWith("video")) {
+            content += '<video controls width="250" src="' + data.file_url + '"></video>';
+          } else {
+            content += '<a href="' + data.file_url + '" target="_blank">Download Documento</a>';
+          }
+        } else {
+          content += data.msg;
+        }
+        let messageContent = $('<span class="message-content">').html(content);
         messageDiv.append(messageContent);
         
         if (data.username === username && data.id !== 0) {
@@ -302,6 +330,40 @@
         let replyMsg = $(this).data("msg");
         $("#reply-text").text("Respondendo: " + replyMsg);
         $("#reply-preview").show();
+      });
+      
+      // Tratamento do botão de envio de arquivo
+      $("#uploadBtn").click(function(){
+        $("#fileInput").click();
+      });
+      
+      $("#fileInput").change(function(){
+        let file = this.files[0];
+        if (file) {
+          let formData = new FormData();
+          formData.append("file", file);
+          $.ajax({
+            url: "/upload",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+              // Emite uma mensagem com o arquivo enviado
+              let payload = { 
+                username: username, 
+                room: room, 
+                msg: "",  // mensagem em branco, pois é um arquivo
+                file_url: response.url,
+                file_type: response.file_type
+              };
+              socket.emit("message", payload);
+            },
+            error: function(err) {
+              console.error("Erro no upload:", err);
+            }
+          });
+        }
       });
       
     });

@@ -1,14 +1,20 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from flask_socketio import SocketIO, join_room, leave_room, emit
 from flask_sqlalchemy import SQLAlchemy
 import datetime
 from flask_migrate import Migrate
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "sua_chave_secreta_muito_dificil"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///frecomu.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Pasta para salvar uploads
+UPLOAD_FOLDER = os.path.join(app.root_path, "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -22,20 +28,21 @@ rooms = {}
 #     "amigos": {"private": True, "password": "123456"}
 # }
 
-# Modelo de Mensagem com campo opcional "reply_to"
+# Modelo de Mensagem atualizado (suporta arquivos)
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False)
     room = db.Column(db.String(80), nullable=False)
     msg = db.Column(db.Text, nullable=False)
+    file_url = db.Column(db.String(255), nullable=True)  # URL para o arquivo (áudio, vídeo, documento)
+    file_type = db.Column(db.String(50), nullable=True)  # Tipo do arquivo: 'audio', 'video', 'document'
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     reply_to = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=True)
-    # Relacionamento para a mensagem original (pai)
     parent = db.relationship('Message', remote_side=[id], uselist=False)
-    # Relacionamento com as reações:
     reactions = db.relationship('Reaction', backref='message', lazy=True)
 
-# Modelo de Reação
+
+# Modelo de Reação permanece o mesmo
 class Reaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
@@ -43,28 +50,31 @@ class Reaction(db.Model):
     emoji = db.Column(db.String(10), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-# Rota de login (template login.html deve existir)
+# Rota para servir arquivos enviados (uploads)
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# Rotas de autenticação (login e register) devem existir
 @app.route("/login")
 def login():
     return render_template("login.html")
 
-# Rota de registro (template register.html deve existir)
 @app.route("/register")
 def register():
     return render_template("register.html")
 
-# Rota unificada para criar ou entrar em salas
+# Rota unificada para criar/entrar em salas
 @app.route("/", methods=["GET", "POST"])
 def index():
     error = None
-    # Se há o parâmetro "room" na query string, estamos no modo "entrar"
     room_param = request.args.get("room")
     
     if request.method == "POST":
         if room_param:
-            # Formulário de entrada (join)
+            # Modo "entrar" na sala (username é obtido via Firebase e preenchido automaticamente)
             username = request.form.get("username", "").strip()
-            room_name = room_param  # já definido na URL
+            room_name = room_param
             entered_password = request.form.get("password", "").strip()
             if room_name not in rooms:
                 error = "Sala não existe."
@@ -82,7 +92,7 @@ def index():
                     session["room"] = room_name
                     return redirect(url_for("chat"))
         else:
-            # Formulário de criação de sala
+            # Modo "criar" sala
             room_name = request.form.get("room_name", "").strip()
             is_private = request.form.get("is_private") == "on"
             password = request.form.get("password", "").strip() if is_private else None
@@ -92,10 +102,8 @@ def index():
                 error = "Essa sala já existe."
             else:
                 rooms[room_name] = {"private": is_private, "password": password}
-                # Após criar, redireciona para a mesma página com ?room=nome_da_sala para que o usuário possa entrar
                 return redirect(url_for("index", room=room_name))
     
-    # Renderiza o template unificado: se room_param estiver definido, exibe o formulário de entrada; senão, exibe o formulário de criação e a lista de salas
     return render_template("index.html", rooms=rooms, error=error, room=room_param)
 
 # Rota do chat
@@ -108,7 +116,21 @@ def chat():
     messages = Message.query.filter_by(room=room).order_by(Message.timestamp).all()
     return render_template("chat.html", username=username, room=room, messages=messages)
 
-# SocketIO – Eventos permanecem inalterados
+# Rota para upload de arquivos
+@app.route("/upload", methods=["POST"])
+def upload():
+    if 'file' not in request.files:
+        return jsonify({"error": "Nenhum arquivo enviado."}), 400
+    file = request.files['file']
+    if file.filename == "":
+        return jsonify({"error": "Nome de arquivo inválido."}), 400
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+    # Retorna a URL do arquivo e o tipo (usando o mimetype do arquivo)
+    return jsonify({"url": url_for('uploaded_file', filename=filename), "file_type": file.mimetype})
+
+# SocketIO – Eventos para chat e reações
 
 @socketio.on("join")
 def on_join(data):
@@ -125,12 +147,14 @@ def on_join(data):
 def handle_message(data):
     room = data["room"]
     username = data["username"]
-    msg_text = data["msg"]
-    reply_to = data.get("reply_to")  # Pode ser None se não for resposta
-    message = Message(username=username, room=room, msg=msg_text, reply_to=reply_to)
+    msg_text = data.get("msg")  # pode ser None se for arquivo
+    reply_to = data.get("reply_to")
+    file_url = data.get("file_url")
+    file_type = data.get("file_type")
+    message = Message(username=username, room=room, msg=msg_text, reply_to=reply_to, file_url=file_url, file_type=file_type)
     db.session.add(message)
     db.session.commit()
-    emit("message", {"id": message.id, "username": username, "msg": msg_text, "reply_to": reply_to}, room=room)
+    emit("message", {"id": message.id, "username": username, "msg": msg_text, "reply_to": reply_to, "file_url": file_url, "file_type": file_type}, room=room)
 
 @socketio.on("edit_message")
 def handle_edit_message(data):
