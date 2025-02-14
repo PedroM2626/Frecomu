@@ -9,7 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script>
-    // Substitua os valores abaixo pelos dados do seu projeto Firebase
+    // Configure com os dados do seu projeto Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
       authDomain: "frecomu.firebaseapp.com",
@@ -21,20 +21,19 @@
       measurementId: "G-7WVRRMF51Y"
     };
     firebase.initializeApp(firebaseConfig);
-
-    // Verifica se o usuário está logado; se não, redireciona para /register
+    
+    // Se o usuário não estiver logado, redireciona para login
     firebase.auth().onAuthStateChanged(function(user) {
       if (user) {
-        // Usa o displayName se estiver definido, senão usa o email
         const nomeExibicao = user.displayName ? user.displayName : user.email;
         document.getElementById("userName").innerText = nomeExibicao;
-        // Preenche o campo oculto "username" (para o formulário de entrada de sala) com o nome de exibição
+        // Preenche o campo oculto "username" se estiver visível
         let usernameInput = document.getElementById("username");
         if (usernameInput) {
           usernameInput.value = nomeExibicao;
         }
       } else {
-        window.location.href = "/register";
+        window.location.href = "/login";
       }
     });
   </script>
@@ -44,7 +43,7 @@
   </style>
 </head>
 <body>
-  <!-- Navbar única no topo -->
+  <!-- Navbar no topo -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
       <a class="navbar-brand" href="/">Frecomu</a>
@@ -63,10 +62,9 @@
     {% endif %}
     
     {% if room %}
-      <!-- Formulário para entrar na sala (modo join) -->
+      <!-- Formulário para entrar na sala -->
       <h3>Entrar na Sala: {{ room }}</h3>
       <form method="POST">
-        <!-- Campo oculto para o nome do usuário já logado -->
         <input type="hidden" name="username" id="username">
         <div class="mb-3">
           <label for="password" class="form-label">Senha (se for sala privada)</label>
@@ -119,7 +117,6 @@
             {% else %}
               <span class="badge bg-success">Pública</span>
             {% endif %}
-            <!-- Redireciona para a mesma rota com o parâmetro room definido -->
             <a href="{{ url_for('index', room=room) }}" class="btn btn-sm btn-secondary">Entrar</a>
           </li>
         {% else %}
@@ -133,7 +130,7 @@
   <script>
     document.getElementById("logoutBtn").addEventListener("click", function(){
       firebase.auth().signOut().then(() => {
-        window.location.href = "/register";
+        window.location.href = "/login";
       }).catch((error) => {
         console.error("Erro no logout:", error);
       });

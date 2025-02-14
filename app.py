@@ -33,16 +33,15 @@ class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), nullable=False)
     room = db.Column(db.String(80), nullable=False)
-    msg = db.Column(db.Text, nullable=False)
-    file_url = db.Column(db.String(255), nullable=True)  # URL para o arquivo (áudio, vídeo, documento)
-    file_type = db.Column(db.String(50), nullable=True)  # Tipo do arquivo: 'audio', 'video', 'document'
+    msg = db.Column(db.Text, nullable=True)  # Pode ser vazio para mensagens de áudio
+    file_url = db.Column(db.String(255), nullable=True)  # URL do arquivo
+    file_type = db.Column(db.String(50), nullable=True)  # 'audio', 'video', 'document'
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     reply_to = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=True)
     parent = db.relationship('Message', remote_side=[id], uselist=False)
     reactions = db.relationship('Reaction', backref='message', lazy=True)
 
-
-# Modelo de Reação permanece o mesmo
+# Modelo de Reação
 class Reaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     message_id = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=False)
@@ -50,12 +49,12 @@ class Reaction(db.Model):
     emoji = db.Column(db.String(10), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-# Rota para servir arquivos enviados (uploads)
+# Rota para servir arquivos enviados
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# Rotas de autenticação (login e register) devem existir
+# Rotas de autenticação
 @app.route("/login")
 def login():
     return render_template("login.html")
@@ -72,7 +71,7 @@ def index():
     
     if request.method == "POST":
         if room_param:
-            # Modo "entrar" na sala (username é obtido via Firebase e preenchido automaticamente)
+            # Modo "entrar": o username já vem preenchido via Firebase
             username = request.form.get("username", "").strip()
             room_name = room_param
             entered_password = request.form.get("password", "").strip()
@@ -92,7 +91,7 @@ def index():
                     session["room"] = room_name
                     return redirect(url_for("chat"))
         else:
-            # Modo "criar" sala
+            # Modo "criar": criar nova sala
             room_name = request.form.get("room_name", "").strip()
             is_private = request.form.get("is_private") == "on"
             password = request.form.get("password", "").strip() if is_private else None
@@ -127,11 +126,9 @@ def upload():
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     file.save(filepath)
-    # Retorna a URL do arquivo e o tipo (usando o mimetype do arquivo)
     return jsonify({"url": url_for('uploaded_file', filename=filename), "file_type": file.mimetype})
 
 # SocketIO – Eventos para chat e reações
-
 @socketio.on("join")
 def on_join(data):
     username = data["username"]
