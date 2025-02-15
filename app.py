@@ -129,6 +129,11 @@ def upload():
     file.save(filepath)
     return jsonify({"url": url_for('uploaded_file', filename=filename), "file_type": file.mimetype})
 
+@app.route('/profile')
+def profile():
+    return render_template("profile.html")
+
+
 # Rota para editar o nome da sala (apenas para o owner)
 @app.route("/edit_room", methods=["POST"])
 def edit_room():
