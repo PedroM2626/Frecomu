@@ -2,5 +2,9 @@ Flask
 Flask-SQLAlchemy
 Flask-Login
 Flask-SocketIO
+flask_migrate
+gunicorn
+eventlet
+werkzeug
 python-dotenv
 eventlet
