@@ -104,6 +104,7 @@ def index():
                 rooms[room_name] = {"private": is_private, "password": password, "owner": session.get("username")}
                 return redirect(url_for("index", room=room_name))
     
+    # Passa o usuário logado como current_user para o template
     return render_template("index.html", rooms=rooms, error=error, room=room_param, current_user=session.get("username"))
 
 # Rota do chat
@@ -129,10 +130,12 @@ def upload():
     file.save(filepath)
     return jsonify({"url": url_for('uploaded_file', filename=filename), "file_type": file.mimetype})
 
+# Rota para o perfil (exibe a página de configurações do perfil)
 @app.route('/profile')
 def profile():
+    if not session.get("username"):
+        return redirect(url_for("login"))
     return render_template("profile.html")
-
 
 # Rota para editar o nome da sala (apenas para o owner)
 @app.route("/edit_room", methods=["POST"])
@@ -160,7 +163,10 @@ def delete_room():
         return jsonify({"error": "Sala não existe."}), 400
     if rooms[room]["owner"] != session.get("username"):
         return jsonify({"error": "Você não é o criador desta sala."}), 403
+    # Remove a sala do dicionário e apaga as mensagens associadas
     rooms.pop(room)
+    Message.query.filter_by(room=room).delete()
+    db.session.commit()
     if session.get("room") == room:
         session.pop("room", None)
     return jsonify({"deleted_room": room}), 200

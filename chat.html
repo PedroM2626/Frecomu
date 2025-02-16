@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="/frecomu/assets/FrecomuIcon.webp">
+  <title>Chat - Sala {{ room }}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    /* Container de chat */
+    #chat-container {
+      height: 60vh;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background: #fff;
+    }
+    /* Cada mensagem */
+    .message {
+      padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background-color: #dcf8c6;
+      position: relative;
+    }
+    /* Mensagens de sistema */
+    .message.system {
+      background-color: #f1f1f1;
+      font-style: italic;
+    }
+    .message .btn {
+      font-size: 0.7rem;
+      padding: 2px 5px;
+    }
+    /* Painel de emojis (inicialmente oculto) */
+    .emoji-panel {
+      margin-top: 5px;
+      display: none;
+    }
+    .emoji-panel button {
+      font-size: 1rem;
+      margin-right: 5px;
+    }
+    /* Área onde são exibidas as reações */
+    .reactions {
+      margin-top: 5px;
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    /* Badges de reação (similar ao Discord) */
+    .reaction-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      background-color: #7289da;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.85rem;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s;
+    }
+    .reaction-badge:hover {
+      background-color: #5b6eae;
+    }
+    /* Pré-visualização da resposta */
+    #reply-preview {
+      background-color: #f1f1f1;
+      border-left: 3px solid #7289da;
+      padding: 5px 10px;
+      margin-bottom: 5px;
+      display: none;
+      position: relative;
+    }
+    #reply-preview .close-reply {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    /* Snippet da mensagem original na resposta */
+    .reply-snippet {
+      border-left: 2px solid #ccc;
+      padding-left: 5px;
+      margin-bottom: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: #555;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="/">Frecomu</a>
+      <div class="collapse navbar-collapse justify-content-end">
+        <span class="navbar-text text-white me-2" id="userName">{{ username }}</span>
+        <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Conteúdo principal -->
+  <div class="container mt-4">
+    <!-- Área de chat -->
+    <div id="chat-container">
+      {% for message in messages %}
+        <div class="message {% if message.username == 'Sistema' %}system{% endif %}" id="message-{{ message.id }}">
+          {% if message.reply_to and message.parent %}
+            <div class="reply-snippet" onclick="scrollToMessage({{ message.reply_to }})">
+              {{ message.parent.username }}: {{ message.parent.msg }}
+            </div>
+          {% endif %}
+          <span class="message-content">
+            {{ message.username }}:
+            {% if message.file_url %}
+              {% if message.file_type.startswith("audio") %}
+                <audio controls src="{{ message.file_url }}"></audio>
+              {% elif message.file_type.startswith("video") %}
+                <video controls width="250" src="{{ message.file_url }}"></video>
+              {% else %}
+                <a href="{{ message.file_url }}" target="_blank">Download Documento</a>
+              {% endif %}
+            {% else %}
+              {{ message.msg }}
+            {% endif %}
+          </span>
+          {% if message.username == username and message.username != "Sistema" %}
+            <button class="btn btn-sm btn-warning ms-2 edit-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Editar</button>
+            <button class="btn btn-sm btn-danger ms-2 delete-btn" data-id="{{ message.id }}">Excluir</button>
+          {% endif %}
+          {% if message.username != "Sistema" %}
+            <button class="btn btn-sm btn-secondary ms-2 reply-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Responder</button>
+            <button class="btn btn-sm btn-info ms-2 reaction-btn" data-id="{{ message.id }}">Reagir</button>
+            <div class="emoji-panel" id="emoji-panel-{{ message.id }}"></div>
+          {% endif %}
+          <!-- Renderiza as reações já cadastradas agrupadas por emoji -->
+          <div class="reactions" id="reactions-{{ message.id }}">
+            {% for group in message.reactions|groupby('emoji') %}
+              <span class="reaction-badge">{{ group.grouper }} {{ group.list|length }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    
+    <!-- Pré-visualização da resposta -->
+    <div id="reply-preview">
+      <span id="reply-text"></span>
+      <span class="close-reply" onclick="cancelReply()">×</span>
+    </div>
+    
+    <!-- Input para enviar mensagem e upload de arquivo -->
+    <div class="input-group mt-3">
+      <input type="text" id="mensagem" class="form-control" placeholder="Digite sua mensagem...">
+      <input type="file" id="fileInput" style="display:none;">
+      <button id="uploadBtn" class="btn btn-secondary">📎</button>
+      <button id="enviar" class="btn btn-primary">Enviar</button>
+    </div>
+  </div>
+  
+  <!-- Bibliotecas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+  <script>
+    let replyToMessageId = null;
+    function cancelReply() {
+      replyToMessageId = null;
+      $("#reply-preview").hide();
+    }
+    function scrollToMessage(messageId) {
+      let target = $("#message-" + messageId);
+      if (target.length) {
+        $("#chat-container").animate({
+          scrollTop: target.offset().top - $("#chat-container").offset().top + $("#chat-container").scrollTop()
+        }, 500);
+      }
+    }
+    $(document).ready(function(){
+      const socket = io();
+      const username = "{{ username }}";
+      const room = "{{ room }}";
+      const availableEmojis = ["👍", "❤️", "😂", "😮", "😱", "😎", "😢", "😡", "😭", "🤤", "💀"];
+      
+      socket.emit("join", {username: username, room: room});
+      
+      socket.on("message", function(data){
+        let msgClass = data.id === 0 ? "message system" : "message";
+        let messageDiv = $('<div class="' + msgClass + '" id="message-' + data.id + '">');
+        
+        if (data.reply_to) {
+          let replySnippet = $('<div class="reply-snippet">')
+            .text("Respondendo à mensagem #" + data.reply_to)
+            .click(function(){ scrollToMessage(data.reply_to); });
+          messageDiv.append(replySnippet);
+        }
+        
+        let content = data.username + ': ';
+        if (data.file_url) {
+          if (data.file_type.startsWith("audio")) {
+            content += '<audio controls src="' + data.file_url + '"></audio>';
+          } else if (data.file_type.startsWith("video")) {
+            content += '<video controls width="250" src="' + data.file_url + '"></video>';
+          } else {
+            content += '<a href="' + data.file_url + '" target="_blank">Download Documento</a>';
+          }
+        } else {
+          content += data.msg;
+        }
+        let messageContent = $('<span class="message-content">').html(content);
+        messageDiv.append(messageContent);
+        
+        if (data.username === username && data.id !== 0) {
+          let editBtn = $('<button class="btn btn-sm btn-warning ms-2 edit-btn">Editar</button>');
+          let deleteBtn = $('<button class="btn btn-sm btn-danger ms-2 delete-btn">Excluir</button>');
+          editBtn.data("id", data.id).data("msg", data.msg);
+          messageDiv.append(editBtn, deleteBtn);
+        }
+        if (data.username !== "Sistema") {
+          let replyBtn = $('<button class="btn btn-sm btn-secondary ms-2 reply-btn">Responder</button>')
+                          .data("id", data.id).data("msg", data.msg);
+          let reactBtn = $('<button class="btn btn-sm btn-info ms-2 reaction-btn">Reagir</button>')
+                          .data("id", data.id);
+          let emojiPanel = $('<div class="emoji-panel" id="emoji-panel-' + data.id + '"></div>');
+          messageDiv.append(replyBtn, reactBtn, emojiPanel);
+        }
+        // As reações já foram renderizadas no template, mas caso seja necessário atualizar via socket:
+        let reactionDiv = $('<div class="reactions" id="reactions-' + data.id + '"></div>');
+        messageDiv.append(reactionDiv);
+        
+        $("#chat-container").append(messageDiv);
+        $("#chat-container").scrollTop($("#chat-container")[0].scrollHeight);
+      });
+      
+      socket.on("edit_message", function(data){
+        let msgDiv = $("#message-" + data.id);
+        if (msgDiv.length) {
+          msgDiv.find(".message-content").text(data.username + ': ' + data.msg);
+          msgDiv.find(".edit-btn").data("msg", data.msg);
+        }
+      });
+      
+      socket.on("delete_message", function(data){
+        $("#message-" + data.id).remove();
+      });
+      
+      socket.on("reaction_update", function(data){
+        let reactionContainer = $("#reactions-" + data.message_id);
+        reactionContainer.empty();
+        for (let emoji in data.reactions) {
+          let count = data.reactions[emoji];
+          let reactionBadge = $('<span class="reaction-badge">').text(emoji + " " + count);
+          reactionBadge.click(function(){
+            socket.emit("react_message", { message_id: data.message_id, username: username, room: room, emoji: emoji });
+          });
+          reactionContainer.append(reactionBadge);
+        }
+      });
+      
+      $("#enviar").click(function(){
+        const msg = $("#mensagem").val();
+        if (msg.trim() !== "") {
+          let payload = { username: username, room: room, msg: msg };
+          if (replyToMessageId) {
+            payload.reply_to = replyToMessageId;
+          }
+          socket.emit("message", payload);
+          $("#mensagem").val('');
+          cancelReply();
+        }
+      });
+      
+      $("#mensagem").keypress(function(event){
+        if (event.which === 13) {
+          $("#enviar").click();
+          return false;
+        }
+      });
+      
+      $(document).on("click", ".edit-btn", function(){
+        let messageId = $(this).data("id");
+        let currentMsg = $(this).data("msg");
+        let newText = prompt("Editar mensagem:", currentMsg);
+        if (newText !== null && newText.trim() !== "") {
+          socket.emit("edit_message", { id: messageId, username: username, room: room, msg: newText });
+        }
+      });
+      
+      $(document).on("click", ".delete-btn", function(){
+        let messageId = $(this).data("id");
+        if (confirm("Tem certeza que deseja excluir essa mensagem?")) {
+          socket.emit("delete_message", { id: messageId, username: username, room: room });
+        }
+      });
+      
+      $(document).on("click", ".reaction-btn", function(){
+        let messageId = $(this).data("id");
+        let panel = $("#emoji-panel-" + messageId);
+        if (panel.is(":visible")) {
+          panel.hide();
+        } else {
+          panel.empty();
+          availableEmojis.forEach(function(emoji) {
+            let btn = $('<button class="btn btn-sm btn-light emoji-btn">').text(emoji);
+            btn.data("emoji", emoji);
+            btn.data("messageId", messageId);
+            panel.append(btn);
+          });
+          panel.show();
+        }
+      });
+      
+      $(document).on("click", ".emoji-btn", function(){
+        let emoji = $(this).data("emoji");
+        let messageId = $(this).data("messageId");
+        $("#emoji-panel-" + messageId).hide();
+        socket.emit("react_message", { message_id: messageId, username: username, room: room, emoji: emoji });
+      });
+      
+      $(document).on("click", ".reply-btn", function(){
+        replyToMessageId = $(this).data("id");
+        let replyMsg = $(this).data("msg");
+        $("#reply-text").text("Respondendo: " + replyMsg);
+        $("#reply-preview").show();
+      });
+      
+      // Tratamento do botão de envio de arquivo
+      $("#uploadBtn").click(function(){
+        console.log("Upload button clicked");
+        $("#fileInput").click();
+      });
+      
+      $("#fileInput").change(function(){
+        let file = this.files[0];
+        if (file) {
+          console.log("File selected:", file.name);
+          let formData = new FormData();
+          formData.append("file", file);
+          $.ajax({
+            url: "/upload",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+              console.log("Upload success:", response);
+              let payload = { 
+                username: username, 
+                room: room, 
+                msg: "",  // mensagem em branco, pois é um arquivo
+                file_url: response.url,
+                file_type: response.file_type
+              };
+              socket.emit("message", payload);
+            },
+            error: function(err) {
+              console.error("Erro no upload:", err);
+            }
+          });
+        }
+      });
+      
+      // Scroll automático para a última mensagem após a janela carregar
+      $(window).on('load', function() {
+        setTimeout(function(){
+          $("#chat-container").scrollTop($("#chat-container")[0].scrollHeight);
+        }, 100);
+      });
+      
+    });
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
