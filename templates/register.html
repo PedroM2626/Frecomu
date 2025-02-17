@@ -10,6 +10,8 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <!-- Firebase Storage SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
   <script>
     // Configure com os dados do seu projeto Firebase
     const firebaseConfig = {
@@ -47,6 +49,10 @@
           <label for="password" class="form-label">Senha</label>
           <input type="password" id="password" class="form-control" placeholder="Sua senha">
         </div>
+        <div class="mb-3">
+          <label for="profilePic" class="form-label">Foto de Perfil (opcional)</label>
+          <input type="file" id="profilePic" class="form-control">
+        </div>
         <button id="registerBtn" class="btn btn-primary w-100">Registrar</button>
         <p class="mt-3 mb-0 text-center">Já possui conta? <a href="/login">Faça login aqui</a>.</p>
       </div>
@@ -60,16 +66,40 @@
       const displayName = document.getElementById("displayName").value;
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
+      const profilePic = document.getElementById("profilePic").files[0];
       
       firebase.auth().createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
-          userCredential.user.updateProfile({
-            displayName: displayName
-          }).then(() => {
-            window.location.href = "/";
-          }).catch((error) => {
-            document.getElementById("error").innerText = error.message;
-          });
+          const user = userCredential.user;
+          if (profilePic) {
+            const storageRef = firebase.storage().ref();
+            // Cria uma referência para a imagem de perfil com o UID do usuário para evitar conflitos
+            const profilePicRef = storageRef.child('profile_images/' + user.uid + '_' + profilePic.name);
+            profilePicRef.put(profilePic).then((snapshot) => {
+              snapshot.ref.getDownloadURL().then((url) => {
+                user.updateProfile({
+                  displayName: displayName,
+                  photoURL: url
+                }).then(() => {
+                  window.location.href = "/";
+                }).catch((error) => {
+                  document.getElementById("error").innerText = error.message;
+                });
+              }).catch((error) => {
+                document.getElementById("error").innerText = error.message;
+              });
+            }).catch((error) => {
+              document.getElementById("error").innerText = error.message;
+            });
+          } else {
+            user.updateProfile({
+              displayName: displayName
+            }).then(() => {
+              window.location.href = "/";
+            }).catch((error) => {
+              document.getElementById("error").innerText = error.message;
+            });
+          }
         })
         .catch((error) => {
           document.getElementById("error").innerText = error.message;

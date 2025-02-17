@@ -105,6 +105,7 @@ def index():
                 return redirect(url_for("index", room=room_name))
     
     # Passa o usuário logado como current_user para o template
+    # Passa o usuário logado como current_user para o template
     return render_template("index.html", rooms=rooms, error=error, room=room_param, current_user=session.get("username"))
 
 # Rota do chat
@@ -137,6 +138,11 @@ def profile():
         return redirect(url_for("login"))
     return render_template("profile.html")
 
+# Rota para o perfil (exibe a página de configurações do perfil)
+@app.route('/profile')
+def profile():
+    return render_template("profile.html")
+
 # Rota para editar o nome da sala (apenas para o owner)
 @app.route("/edit_room", methods=["POST"])
 def edit_room():
@@ -164,7 +170,10 @@ def delete_room():
     if rooms[room]["owner"] != session.get("username"):
         return jsonify({"error": "Você não é o criador desta sala."}), 403
     # Remove a sala do dicionário e apaga as mensagens associadas
+    # Remove a sala do dicionário e apaga as mensagens associadas
     rooms.pop(room)
+    Message.query.filter_by(room=room).delete()
+    db.session.commit()
     Message.query.filter_by(room=room).delete()
     db.session.commit()
     if session.get("room") == room:
@@ -191,10 +200,22 @@ def handle_message(data):
     reply_to = data.get("reply_to")
     file_url = data.get("file_url")
     file_type = data.get("file_type")
+    # Não armazenamos a foto de perfil no banco; o cliente irá enviar o photoURL
     message = Message(username=username, room=room, msg=msg_text, reply_to=reply_to, file_url=file_url, file_type=file_type)
     db.session.add(message)
     db.session.commit()
-    emit("message", {"id": message.id, "username": username, "msg": msg_text, "reply_to": reply_to, "file_url": file_url, "file_type": file_type}, room=room)
+    # Inclui a foto de perfil (se enviada) na resposta do socket
+    photoURL = data.get("photoURL")
+    emit("message", {
+        "id": message.id,
+        "username": username,
+        "msg": msg_text,
+        "reply_to": reply_to,
+        "file_url": file_url,
+        "file_type": file_type,
+        "photoURL": photoURL
+    }, room=room)
+
 
 @socketio.on("edit_message")
 def handle_edit_message(data):

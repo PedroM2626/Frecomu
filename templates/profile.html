@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/png" href="/frecomu/assets/FrecomuIcon.webp">
+  <title>Perfil do Usuário - Frecomu</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
+      authDomain: "frecomu.firebaseapp.com",
+      databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
+      projectId: "frecomu",
+      storageBucket: "frecomu.firebasestorage.app",
+      messagingSenderId: "514151976144",
+      appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
+      measurementId: "G-7WVRRMF51Y"
+    };
+    firebase.initializeApp(firebaseConfig);
+    
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (!user) {
+        window.location.href = "/login";
+      } else {
+        document.getElementById("currentUsername").value = user.displayName || "";
+        document.getElementById("userName").innerText = user.displayName || user.email;
+        document.getElementById("currentProfilePic").src = user.photoURL || "/static/default_profile.png";
+      }
+    });
+  </script>
+  <style>
+    body { background: #f8f9fa; }
+    .container { max-width: 600px; margin-top: 50px; }
+    .profile-img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 2px solid #ccc;
+    }
+
+    .navbar-profile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .navbar-profile-img {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #fff;
+    }
+
+    #profilePicLoader {
+      display: none;
+      width: 30px;
+      height: 30px;
+      border: 3px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 3px solid #3498db;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar modificada -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">Frecomu</a>
+      <div class="collapse navbar-collapse justify-content-end">
+        <div class="navbar-profile">
+          <!-- Nova imagem de perfil na navbar -->
+          <img id="navbarProfilePic" src="/static/default_profile.png" class="navbar-profile-img" alt="Foto do perfil">
+          <a href="/profile" class="btn btn-outline-light me-2" id="userName"></a>
+        </div>
+        <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+  
+  <div class="container mt-4">
+    <h1 class="text-center mb-4">Configurações do Perfil</h1>
+    
+    <div id="error" class="alert alert-danger d-none"></div>
+    <div id="success" class="alert alert-success d-none"></div>
+
+    <!-- Formulário de Alteração de Nome -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h3 class="card-title mb-3">Alterar Nome de Usuário</h3>
+        <form id="updateUsernameForm">
+          <div class="mb-3">
+            <label for="currentUsername" class="form-label">Nome Atual</label>
+            <input type="text" id="currentUsername" class="form-control" disabled>
+          </div>
+          <div class="mb-3">
+            <label for="newUsername" class="form-label">Novo Nome</label>
+            <input type="text" id="newUsername" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Atualizar Nome</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulário de Alteração de Senha -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <h3 class="card-title mb-3">Alterar Senha</h3>
+        <form id="updatePasswordForm">
+          <div class="mb-3">
+            <label for="currentPassword" class="form-label">Senha Atual</label>
+            <input type="password" id="currentPassword" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="newPassword" class="form-label">Nova Senha</label>
+            <input type="password" id="newPassword" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Confirmar Nova Senha</label>
+            <input type="password" id="confirmPassword" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary">Atualizar Senha</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Formulário de Alteração da Foto de Perfil -->
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title mb-3">Alterar Foto de Perfil</h3>
+        <div class="mb-3 text-center">
+          <img id="currentProfilePic" src="/static/default_profile.png" alt="Foto atual" class="profile-img">
+        </div>
+        <form id="updateProfilePicForm">
+          <div class="mb-3">
+            <label for="profilePic" class="form-label">Selecionar Nova Foto</label>
+            <input type="file" id="profilePic" class="form-control" accept="image/*">
+          </div>
+          <div class="mb-3 text-center" id="newProfilePicPreviewContainer" style="display:none;">
+            <img id="newProfilePicPreview" src="" alt="Nova Foto" class="profile-img">
+          </div>
+          <div id="profilePicLoader"></div>
+          <button type="submit" class="btn btn-primary">Atualizar Foto</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="text-center mt-4">
+      <a href="/" class="btn btn-secondary">Voltar para Salas</a>
+    </div>
+  </div>
+  
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function showMessage(type, text) {
+      const errorDiv = document.getElementById("error");
+      const successDiv = document.getElementById("success");
+      if (type === "error") {
+        errorDiv.classList.remove("d-none");
+        successDiv.classList.add("d-none");
+        errorDiv.innerText = text;
+      } else {
+        successDiv.classList.remove("d-none");
+        errorDiv.classList.add("d-none");
+        successDiv.innerText = text;
+      }
+    }
+
+    function toggleLoader(show) {
+      document.getElementById("profilePicLoader").style.display = show ? "block" : "none";
+    }
+
+    // Atualização do nome de usuário
+    document.getElementById("updateUsernameForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const newName = document.getElementById("newUsername").value;
+      firebase.auth().currentUser.updateProfile({
+        displayName: newName
+      }).then(() => {
+        showMessage("success", "Nome atualizado com sucesso!");
+        document.getElementById("currentUsername").value = newName;
+        document.getElementById("userName").innerText = newName;
+      }).catch(error => {
+        showMessage("error", error.message);
+      });
+    });
+
+    // Atualização de senha
+    document.getElementById("updatePasswordForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const currentPassword = document.getElementById("currentPassword").value;
+      const newPassword = document.getElementById("newPassword").value;
+      const confirmPassword = document.getElementById("confirmPassword").value;
+      
+      if (newPassword !== confirmPassword) {
+        showMessage("error", "As senhas não coincidem!");
+        return;
+      }
+
+      const user = firebase.auth().currentUser;
+      const credential = firebase.auth.EmailAuthProvider.credential(
+        user.email, 
+        currentPassword
+      );
+
+      user.reauthenticateWithCredential(credential)
+        .then(() => user.updatePassword(newPassword))
+        .then(() => showMessage("success", "Senha atualizada com sucesso!"))
+        .catch(error => showMessage("error", error.message));
+    });
+
+    // Pré-visualização da nova foto
+    document.getElementById("profilePic").addEventListener("change", function() {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById("newProfilePicPreview").src = e.target.result;
+          document.getElementById("newProfilePicPreviewContainer").style.display = "block";
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Atualização da foto de perfil (Versão Corrigida)
+    document.getElementById("updateProfilePicForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      const file = document.getElementById("profilePic").files[0];
+      
+      if (!file) {
+        showMessage("error", "Por favor, selecione uma imagem.");
+        return;
+      }
+
+      toggleLoader(true);
+      const user = firebase.auth().currentUser;
+      
+      if (!user) {
+        showMessage("error", "Usuário não autenticado!");
+        toggleLoader(false);
+        return;
+      }
+
+      const storageRef = firebase.storage().ref();
+      const fileRef = storageRef.child(`profile_images/${user.uid}/${Date.now()}_${file.name}`);
+
+      // Adiciona timeout para detectar falhas de conexão
+      const uploadTask = fileRef.put(file);
+      const uploadTimeout = setTimeout(() => {
+        uploadTask.cancel();
+        showMessage("error", "Tempo excedido. Verifique sua conexão!");
+        toggleLoader(false);
+      }, 30000); // 30 segundos
+
+      uploadTask
+        .then(snapshot => {
+          clearTimeout(uploadTimeout);
+          return snapshot.ref.getDownloadURL();
+        })
+        .then(url => {
+          console.log("URL obtida:", url);
+          return user.updateProfile({ photoURL: url });
+        })
+        .then(() => {
+          showMessage("success", "Foto atualizada com sucesso!");
+          document.getElementById("currentProfilePic").src = user.photoURL + "?t=" + Date.now();
+          document.getElementById("profilePic").value = "";
+          document.getElementById("newProfilePicPreviewContainer").style.display = "none";
+        })
+        .catch(error => {
+          console.error("Erro completo:", error);
+          let errorMessage = "Erro ao atualizar a foto";
+          
+          if (error.code) {
+            switch (error.code) {
+              case "storage/unauthorized":
+                errorMessage = "Permissão negada pelo servidor";
+                break;
+              case "storage/canceled":
+                errorMessage = "Upload cancelado";
+                break;
+              case "storage/unknown":
+                errorMessage = "Erro desconhecido no servidor";
+                break;
+            }
+          }
+          
+          showMessage("error", errorMessage);
+        })
+        .finally(() => {
+          clearTimeout(uploadTimeout);
+          toggleLoader(false);
+        });
+    });
+
+
+    // Logout
+    document.getElementById("logoutBtn").addEventListener("click", function(){
+      firebase.auth().signOut().then(() => {
+        window.location.href = "/login";
+      }).catch((error) => {
+        console.error("Erro no logout:", error);
+      });
+    });
+  </script>
+</body>
+</html>

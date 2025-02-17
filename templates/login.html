@@ -44,11 +44,14 @@
           <input type="password" id="password" class="form-control" placeholder="Sua senha">
         </div>
         <button id="loginBtn" class="btn btn-primary w-100">Entrar</button>
+        <div class="text-center mt-3">
+          <button id="resetPassword" class="btn btn-link">Esqueceu a senha?</button>
+        </div>
         <p class="mt-3 mb-0 text-center">Ainda não tem conta? <a href="/register">Registre-se</a></p>
       </div>
     </div>
   </div>
-  
+
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
@@ -58,6 +61,23 @@
       firebase.auth().signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
           window.location.href = "/";
+        })
+        .catch((error) => {
+          document.getElementById("error").innerText = error.message;
+        });
+    });
+
+    // Adicionando funcionalidade de redefinição de senha
+    document.getElementById("resetPassword").addEventListener("click", function() {
+      const email = document.getElementById("email").value;
+      if (!email) {
+        document.getElementById("error").innerText = "Por favor, insira seu email para redefinir a senha.";
+        return;
+      }
+      
+      firebase.auth().sendPasswordResetEmail(email)
+        .then(() => {
+          document.getElementById("error").innerText = "Email de redefinição enviado! Verifique sua caixa de entrada.";
         })
         .catch((error) => {
           document.getElementById("error").innerText = error.message;
