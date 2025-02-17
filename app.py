@@ -134,13 +134,6 @@ def upload():
 # Rota para o perfil (exibe a página de configurações do perfil)
 @app.route('/profile')
 def profile():
-    if not session.get("username"):
-        return redirect(url_for("login"))
-    return render_template("profile.html")
-
-# Rota para o perfil (exibe a página de configurações do perfil)
-@app.route('/profile')
-def profile():
     return render_template("profile.html")
 
 # Rota para editar o nome da sala (apenas para o owner)
