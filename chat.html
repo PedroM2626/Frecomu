@@ -15,7 +15,29 @@
       padding: 10px;
       background: #fff;
     }
-    /* Cada mensagem */
+    /* Container para cada mensagem com foto de perfil */
+    .message-container {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .profile-pic {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-top: 5px;
+    }
+    .message-content {
+      flex-grow: 1;
+    }
+    .highlight-message {
+      animation: highlight 2s ease-out;
+    }
+    @keyframes highlight {
+      0% { background-color: #e8d3ff; }
+      100% { background-color: transparent; }
+    }
     .message {
       padding: 10px;
       border-radius: 10px;
@@ -23,7 +45,6 @@
       background-color: #dcf8c6;
       position: relative;
     }
-    /* Mensagens de sistema */
     .message.system {
       background-color: #f1f1f1;
       font-style: italic;
@@ -32,7 +53,6 @@
       font-size: 0.7rem;
       padding: 2px 5px;
     }
-    /* Painel de emojis */
     .emoji-panel {
       margin-top: 5px;
       display: none;
@@ -41,14 +61,12 @@
       font-size: 1rem;
       margin-right: 5px;
     }
-    /* Área onde são exibidas as reações */
     .reactions {
       margin-top: 5px;
       display: flex;
       gap: 5px;
       flex-wrap: wrap;
     }
-    /* Badges de reação (similar ao Discord) */
     .reaction-badge {
       display: inline-flex;
       align-items: center;
@@ -64,7 +82,6 @@
     .reaction-badge:hover {
       background-color: #5b6eae;
     }
-    /* Pré-visualização da resposta */
     #reply-preview {
       background-color: #f1f1f1;
       border-left: 3px solid #7289da;
@@ -80,7 +97,6 @@
       cursor: pointer;
       font-weight: bold;
     }
-    /* Snippet da mensagem original na resposta */
     .reply-snippet {
       border-left: 2px solid #ccc;
       padding-left: 5px;
@@ -90,38 +106,14 @@
       color: #555;
     }
   </style>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
-      authDomain: "frecomu.firebaseapp.com",
-      databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
-      projectId: "frecomu",
-      storageBucket: "frecomu.firebasestorage.app",
-      messagingSenderId: "514151976144",
-      appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
-      measurementId: "G-7WVRRMF51Y"
-    };
-    firebase.initializeApp(firebaseConfig);
-    firebase.auth().onAuthStateChanged(function(user) {
-      if (user) {
-        const nomeExibicao = user.displayName ? user.displayName : user.email;
-        document.getElementById("userName").innerText = nomeExibicao;
-        let usernameInput = document.getElementById("username");
-        if (usernameInput) { usernameInput.value = nomeExibicao; }
-      } else {
-        window.location.href = "/login";
-      }
-    });
-  </script>
 </head>
 <body>
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
+    <div class="container">
       <a class="navbar-brand" href="/">Frecomu</a>
       <div class="collapse navbar-collapse justify-content-end">
-        <!-- Use session.get("username") para comparar com o owner -->
-        <a href="/profile" class="btn btn-outline-light me-2" id="userName">{{ session.get("username") }}</a>
+        <span class="navbar-text text-white me-2" id="userName">{{ username }}</span>
         <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
       </div>
     </div>
@@ -133,42 +125,45 @@
     <div id="chat-container">
       {% for message in messages %}
         <div class="message {% if message.username == 'Sistema' %}system{% endif %}" id="message-{{ message.id }}">
-          {% if message.reply_to and message.parent %}
-            <div class="reply-snippet" onclick="scrollToMessage({{ message.reply_to }})">
-              {{ message.parent.username }}: {{ message.parent.msg }}
-            </div>
-          {% endif %}
-          <span class="message-content">
-            {% if message.uid and message.uid == current_uid %}
-              {{ current_display_name }}:
-            {% else %}
-              {{ message.username }}:
-            {% endif %}
-            {% if message.file_url %}
-              {% if message.file_type.startswith("audio") %}
-                <audio controls src="{{ message.file_url }}"></audio>
-              {% elif message.file_type.startswith("video") %}
-                <video controls width="250" src="{{ message.file_url }}"></video>
-              {% else %}
-                <a href="{{ message.file_url }}" target="_blank">Download Documento</a>
+          <div class="message-container">
+            <img src="{{ message.photo_url or '/static/default_profile.png' }}" 
+                 class="profile-pic" 
+                 alt="{{ message.username }}">
+            <div class="message-content">
+              {% if message.reply_to and message.parent %}
+                <div class="reply-snippet" onclick="scrollToMessage({{ message.reply_to }})">
+                  {{ message.parent.username }}: {{ message.parent.msg }}
+                </div>
               {% endif %}
-            {% else %}
-              {{ message.msg }}
-            {% endif %}
-          </span>
-          {% if message.uid and message.uid == current_uid and message.username != "Sistema" %}
-            <button class="btn btn-sm btn-warning ms-2 edit-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Editar</button>
-            <button class="btn btn-sm btn-danger ms-2 delete-btn" data-id="{{ message.id }}">Excluir</button>
-          {% endif %}
-          {% if message.username != "Sistema" %}
-            <button class="btn btn-sm btn-secondary ms-2 reply-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Responder</button>
-            <button class="btn btn-sm btn-info ms-2 reaction-btn" data-id="{{ message.id }}">Reagir</button>
-            <div class="emoji-panel" id="emoji-panel-{{ message.id }}"></div>
-          {% endif %}
-          <div class="reactions" id="reactions-{{ message.id }}">
-            {% for group in message.reactions|groupby('emoji') %}
-              <span class="reaction-badge">{{ group.grouper }} {{ group.list|length }}</span>
-            {% endfor %}
+              <span>
+                {{ message.username }}:
+                {% if message.file_url %}
+                  {% if message.file_type.startswith("audio") %}
+                    <audio controls src="{{ message.file_url }}"></audio>
+                  {% elif message.file_type.startswith("video") %}
+                    <video controls width="250" src="{{ message.file_url }}"></video>
+                  {% else %}
+                    <a href="{{ message.file_url }}" target="_blank">Download Documento</a>
+                  {% endif %}
+                {% else %}
+                  {{ message.msg }}
+                {% endif %}
+              </span>
+              {% if message.username == username and message.uid == uid and message.username != "Sistema" %}
+                <button class="btn btn-sm btn-warning ms-2 edit-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Editar</button>
+                <button class="btn btn-sm btn-danger ms-2 delete-btn" data-id="{{ message.id }}">Excluir</button>
+              {% endif %}
+              {% if message.username != "Sistema" %}
+                <button class="btn btn-sm btn-secondary ms-2 reply-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Responder</button>
+                <button class="btn btn-sm btn-info ms-2 reaction-btn" data-id="{{ message.id }}">Reagir</button>
+                <div class="emoji-panel" id="emoji-panel-{{ message.id }}"></div>
+              {% endif %}
+              <div class="reactions" id="reactions-{{ message.id }}">
+                {% for group in message.reactions|groupby('emoji') %}
+                  <span class="reaction-badge">{{ group.grouper }} {{ group.list|length }}</span>
+                {% endfor %}
+              </div>
+            </div>
           </div>
         </div>
       {% endfor %}
@@ -193,16 +188,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
   <script>
-
     let replyToMessageId = null;
-    
-    // Função para cancelar resposta
     function cancelReply() {
       replyToMessageId = null;
       $("#reply-preview").hide();
     }
-    
-    // Função para rolar até uma mensagem
     function scrollToMessage(messageId) {
       let target = $("#message-" + messageId);
       if (target.length) {
@@ -211,64 +201,45 @@
         }, 500);
       }
     }
-    
-    // Inicialização
     $(document).ready(function(){
       const socket = io();
       const username = "{{ username }}";
+      const uid = "{{ uid }}"; // Inclui o UID do usuário
       const room = "{{ room }}";
       const availableEmojis = ["👍", "❤️", "😂", "😮", "😱", "😎", "😢", "😡", "😭", "🤤", "💀"];
       
-      // Emitir evento de join e incluir uid (o backend deve enviar esse campo nas mensagens)
-      socket.emit("join", {username: username, room: room});
+      socket.emit("join", {username: username, uid: uid, room: room});
       
       socket.on("message", function(data){
-        // Se o backend enviar o uid da mensagem, compare com o uid atual (passado pelo backend como current_uid)
-        if (data.uid && data.uid === "{{ current_uid }}") {
-          // Garante que, para mensagens do usuário, seja exibido o nome atual
-          data.username = "{{ current_display_name }}";
-        }
         let msgClass = data.id === 0 ? "message system" : "message";
-        let messageDiv = $('<div class="' + msgClass + '" id="message-' + data.id + '">');
-        
-        if (data.reply_to) {
-          let replySnippet = $('<div class="reply-snippet">')
-            .text("Respondendo à mensagem #" + data.reply_to)
-            .click(function(){ scrollToMessage(data.reply_to); });
-          messageDiv.append(replySnippet);
-        }
-        
-        let content = data.username + ': ';
-        if (data.file_url) {
-          if (data.file_type.startsWith("audio")) {
-            content += '<audio controls src="' + data.file_url + '"></audio>';
-          } else if (data.file_type.startsWith("video")) {
-            content += '<video controls width="250" src="' + data.file_url + '"></video>';
-          } else {
-            content += '<a href="' + data.file_url + '" target="_blank">Download Documento</a>';
-          }
-        } else {
-          content += data.msg;
-        }
-        let messageContent = $('<span class="message-content">').html(content);
-        messageDiv.append(messageContent);
-        
-        if (data.uid && data.uid === "{{ current_uid }}" && data.id !== 0) {
-          let editBtn = $('<button class="btn btn-sm btn-warning ms-2 edit-btn">Editar</button>');
-          let deleteBtn = $('<button class="btn btn-sm btn-danger ms-2 delete-btn">Excluir</button>');
-          editBtn.data("id", data.id).data("msg", data.msg);
-          messageDiv.append(editBtn, deleteBtn);
-        }
-        if (data.username !== "Sistema") {
-          let replyBtn = $('<button class="btn btn-sm btn-secondary ms-2 reply-btn">Responder</button>')
-                          .data("id", data.id).data("msg", data.msg);
-          let reactBtn = $('<button class="btn btn-sm btn-info ms-2 reaction-btn">Reagir</button>')
-                          .data("id", data.id);
-          let emojiPanel = $('<div class="emoji-panel" id="emoji-panel-' + data.id + '"></div>');
-          messageDiv.append(replyBtn, reactBtn, emojiPanel);
-        }
-        let reactionDiv = $('<div class="reactions" id="reactions-' + data.id + '"></div>');
-        messageDiv.append(reactionDiv);
+        let messageDiv = $(`
+          <div class="${msgClass}" id="message-${data.id}">
+            <div class="message-container">
+              <img src="${data.photoURL || '/static/default_profile.png'}" class="profile-pic" alt="${data.username}">
+              <div class="message-content">
+                ${data.reply_to ? `<div class="reply-snippet" onclick="scrollToMessage(${data.reply_to})">
+                  ${data.parent?.username || 'Usuário'}: ${data.parent?.msg || 'Mensagem removida'}
+                </div>` : ''}
+                <span>
+                  ${data.username}: 
+                  ${data.file_url ? (data.file_type.startsWith("audio") ? `<audio controls src="${data.file_url}"></audio>` : 
+                    data.file_type.startsWith("video") ? `<video controls width="250" src="${data.file_url}"></video>` : 
+                    `<a href="${data.file_url}" target="_blank">Download Documento</a>`) : data.msg}
+                </span>
+                ${data.uid === uid && data.id !== 0 ? `
+                  <button class="btn btn-sm btn-warning ms-2 edit-btn" data-id="${data.id}" data-msg="${data.msg}">Editar</button>
+                  <button class="btn btn-sm btn-danger ms-2 delete-btn" data-id="${data.id}">Excluir</button>
+                ` : ''}
+                ${data.username !== "Sistema" ? `
+                  <button class="btn btn-sm btn-secondary ms-2 reply-btn" data-id="${data.id}" data-msg="${data.msg}">Responder</button>
+                  <button class="btn btn-sm btn-info ms-2 reaction-btn" data-id="${data.id}">Reagir</button>
+                  <div class="emoji-panel" id="emoji-panel-${data.id}"></div>
+                ` : ''}
+                <div class="reactions" id="reactions-${data.id}"></div>
+              </div>
+            </div>
+          </div>
+        `);
         
         $("#chat-container").append(messageDiv);
         $("#chat-container").scrollTop($("#chat-container")[0].scrollHeight);
@@ -293,12 +264,7 @@
           let count = data.reactions[emoji];
           let reactionBadge = $('<span class="reaction-badge">').text(emoji + " " + count);
           reactionBadge.click(function(){
-            socket.emit("react_message", {
-              message_id: data.message_id,
-              username: username,
-              room: room,
-              emoji: emoji
-            });
+            socket.emit("react_message", { message_id: data.message_id, username: username, uid: uid, room: room, emoji: emoji });
           });
           reactionContainer.append(reactionBadge);
         }
@@ -307,7 +273,7 @@
       $("#enviar").click(function(){
         const msg = $("#mensagem").val();
         if (msg.trim() !== "") {
-          let payload = { username: username, room: room, msg: msg };
+          let payload = { username: username, uid: uid, room: room, msg: msg };
           if (replyToMessageId) {
             payload.reply_to = replyToMessageId;
           }
@@ -329,14 +295,14 @@
         let currentMsg = $(this).data("msg");
         let newText = prompt("Editar mensagem:", currentMsg);
         if (newText !== null && newText.trim() !== "") {
-          socket.emit("edit_message", { id: messageId, username: username, room: room, msg: newText });
+          socket.emit("edit_message", { id: messageId, username: username, uid: uid, room: room, msg: newText });
         }
       });
       
       $(document).on("click", ".delete-btn", function(){
         let messageId = $(this).data("id");
         if (confirm("Tem certeza que deseja excluir essa mensagem?")) {
-          socket.emit("delete_message", { id: messageId, username: username, room: room });
+          socket.emit("delete_message", { id: messageId, username: username, uid: uid, room: room });
         }
       });
       
@@ -361,7 +327,7 @@
         let emoji = $(this).data("emoji");
         let messageId = $(this).data("messageId");
         $("#emoji-panel-" + messageId).hide();
-        socket.emit("react_message", { message_id: messageId, username: username, room: room, emoji: emoji });
+        socket.emit("react_message", { message_id: messageId, username: username, uid: uid, room: room, emoji: emoji });
       });
       
       $(document).on("click", ".reply-btn", function(){
@@ -393,6 +359,7 @@
               console.log("Upload success:", response);
               let payload = { 
                 username: username, 
+                uid: uid, 
                 room: room, 
                 msg: "",  // mensagem em branco, pois é um arquivo
                 file_url: response.url,
@@ -407,7 +374,7 @@
         }
       });
       
-      // Scroll automático para a última mensagem após carregar a janela
+      // Scroll automático para a última mensagem após a janela carregar
       $(window).on('load', function() {
         setTimeout(function(){
           $("#chat-container").scrollTop($("#chat-container")[0].scrollHeight);
