@@ -24,19 +24,20 @@ migrate = Migrate(app, db)
 rooms = {}
 # Exemplo:
 # rooms = {
-#     "geral": {"private": False, "password": None, "owner": "nome@exemplo.com"},
-#     "amigos": {"private": True, "password": "123456", "owner": "nome2@exemplo.com"}
+#     "geral": {"private": False, "password": None, "owner": "uid1"},
+#     "amigos": {"private": True, "password": "123456", "owner": "uid2"}
 # }
 
-# Modelo de Mensagem atualizado (suporta arquivos e inclui UID)
+# Modelo de Mensagem atualizado (suporta arquivos e inclui UID e foto de perfil)
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    uid = db.Column(db.String(80), nullable=False)  # Identificador único do usuário
+    uid = db.Column(db.String(80), nullable=False)  # UID do usuário
     username = db.Column(db.String(80), nullable=False)
     room = db.Column(db.String(80), nullable=False)
     msg = db.Column(db.Text, nullable=True)  # Pode ser vazio para mensagens de áudio
     file_url = db.Column(db.String(255), nullable=True)  # URL do arquivo (áudio, vídeo, documento)
     file_type = db.Column(db.String(50), nullable=True)  # 'audio', 'video', 'document'
+    photo_url = db.Column(db.String(255), nullable=True)  # Foto de perfil do usuário no momento do envio
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     reply_to = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=True)
     parent = db.relationship('Message', remote_side=[id], uselist=False)
@@ -72,7 +73,7 @@ def index():
     
     if request.method == "POST":
         if room_param:
-            # Modo "entrar" na sala (os campos "username" e "uid" são preenchidos via Firebase no frontend)
+            # Modo "entrar" na sala (os campos "username", "uid" são preenchidos via Firebase no frontend)
             username = request.form.get("username", "").strip()
             uid = request.form.get("uid", "").strip()
             room_name = room_param
@@ -103,7 +104,7 @@ def index():
             elif room_name in rooms:
                 error = "Essa sala já existe."
             else:
-                # Armazena o usuário que criou a sala como owner; assume que o frontend preencheu "uid"
+                # Armazena o UID do usuário que criou a sala como owner
                 rooms[room_name] = {
                     "private": is_private, 
                     "password": password, 
@@ -122,7 +123,6 @@ def chat():
     if not username or not uid or not room:
         return redirect(url_for("index"))
     messages = Message.query.filter_by(room=room).order_by(Message.timestamp).all()
-    # Passa também o uid do usuário logado para o template, para comparar com message.uid
     return render_template("chat.html", username=username, uid=uid, room=room, messages=messages)
 
 # Rota para upload de arquivos
@@ -179,7 +179,7 @@ def delete_room():
 @socketio.on("join")
 def on_join(data):
     username = data["username"]
-    uid = data.get("uid")  # opcional, caso o cliente envie
+    uid = data.get("uid")
     room = data["room"]
     join_room(room)
     system_msg = f"{username} entrou na sala."
@@ -191,23 +191,25 @@ def on_join(data):
         "username": "Sistema", 
         "msg": system_msg, 
         "reply_to": None,
-        "uid": "system"
+        "uid": "system",
+        "photoURL": None
     }, room=room)
 
 @socketio.on("message")
 def handle_message(data):
     room = data["room"]
     username = data["username"]
-    uid = data.get("uid")  # O UID do usuário, enviado pelo cliente
+    uid = data.get("uid")
     msg_text = data.get("msg")  # pode ser None se for arquivo
     reply_to = data.get("reply_to")
     file_url = data.get("file_url")
     file_type = data.get("file_type")
-    message = Message(uid=uid, username=username, room=room, msg=msg_text, reply_to=reply_to, file_url=file_url, file_type=file_type)
+    photoURL = data.get("photoURL")  # Foto de perfil enviada pelo cliente
+    message = Message(uid=uid, username=username, room=room, msg=msg_text, 
+                      reply_to=reply_to, file_url=file_url, file_type=file_type,
+                      photo_url=photoURL)
     db.session.add(message)
     db.session.commit()
-    # O cliente pode enviar também a foto de perfil (photoURL) se necessário
-    photoURL = data.get("photoURL")
     emit("message", {
         "id": message.id,
         "username": username,
@@ -228,7 +230,6 @@ def handle_edit_message(data):
     room = data["room"]
     message = Message.query.get(message_id)
     if message:
-        # Compare pelo uid para garantir que a mensagem pertença ao usuário mesmo se ele alterar o nome
         if message.uid == uid:
             message.msg = new_msg
             db.session.commit()
@@ -268,7 +269,8 @@ def on_leave(data):
         "username": "Sistema", 
         "msg": system_msg, 
         "reply_to": None,
-        "uid": "system"
+        "uid": "system",
+        "photoURL": None
     }, room=room)
 
 @socketio.on("react_message")
