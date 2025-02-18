@@ -84,7 +84,29 @@
       padding: 10px;
       background: #fff;
     }
-    /* Cada mensagem */
+    /* Container para cada mensagem com foto de perfil */
+    .message-container {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .profile-pic {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-top: 5px;
+    }
+    .message-content {
+      flex-grow: 1;
+    }
+    .highlight-message {
+      animation: highlight 2s ease-out;
+    }
+    @keyframes highlight {
+      0% { background-color: #e8d3ff; }
+      100% { background-color: transparent; }
+    }
     .message {
       padding: 10px;
       border-radius: 10px;
@@ -92,7 +114,6 @@
       background-color: #dcf8c6;
       position: relative;
     }
-    /* Mensagens de sistema */
     .message.system {
       background-color: #f1f1f1;
       font-style: italic;
@@ -101,7 +122,6 @@
       font-size: 0.7rem;
       padding: 2px 5px;
     }
-    /* Painel de emojis (inicialmente oculto) */
     .emoji-panel {
       margin-top: 5px;
       display: none;
@@ -110,14 +130,12 @@
       font-size: 1rem;
       margin-right: 5px;
     }
-    /* Área onde são exibidas as reações */
     .reactions {
       margin-top: 5px;
       display: flex;
       gap: 5px;
       flex-wrap: wrap;
     }
-    /* Badges de reação (similar ao Discord) */
     .reaction-badge {
       display: inline-flex;
       align-items: center;
@@ -133,7 +151,6 @@
     .reaction-badge:hover {
       background-color: #5b6eae;
     }
-    /* Pré-visualização da resposta */
     #reply-preview {
       background-color: #f1f1f1;
       border-left: 3px solid #7289da;
@@ -149,7 +166,6 @@
       cursor: pointer;
       font-weight: bold;
     }
-    /* Snippet da mensagem original na resposta */
     .reply-snippet {
       border-left: 2px solid #ccc;
       padding-left: 5px;
@@ -295,13 +311,15 @@
     $(document).ready(function(){
       const socket = io();
       const username = "{{ username }}";
+      const uid = "{{ uid }}"; // Inclui o UID do usuário
       const room = "{{ room }}";
       const availableEmojis = ["👍", "❤️", "😂", "😮", "😱", "😎", "😢", "😡", "😭", "🤤", "💀"];
       
-      socket.emit("join", {username: username, room: room});
+      socket.emit("join", {username: username, uid: uid, room: room});
       
       socket.on("message", function(data){
         let msgClass = data.id === 0 ? "message system" : "message";
+        
         let messageDiv = $('<div class="' + msgClass + '" id="message-' + data.id + '">');
         
         if (data.reply_to) {
@@ -380,7 +398,7 @@
           let count = data.reactions[emoji];
           let reactionBadge = $('<span class="reaction-badge">').text(emoji + " " + count);
           reactionBadge.click(function(){
-            socket.emit("react_message", { message_id: data.message_id, username: username, room: room, emoji: emoji });
+            socket.emit("react_message", { message_id: data.message_id, username: username, uid: uid, room: room, emoji: emoji });
           });
           reactionContainer.append(reactionBadge);
         }
@@ -389,7 +407,7 @@
       $("#enviar").click(function(){
         const msg = $("#mensagem").val();
         if (msg.trim() !== "") {
-          let payload = { username: username, room: room, msg: msg };
+          let payload = { username: username, uid: uid, room: room, msg: msg };
           if (replyToMessageId) {
             payload.reply_to = replyToMessageId;
           }
@@ -411,14 +429,14 @@
         let currentMsg = $(this).data("msg");
         let newText = prompt("Editar mensagem:", currentMsg);
         if (newText !== null && newText.trim() !== "") {
-          socket.emit("edit_message", { id: messageId, username: username, room: room, msg: newText });
+          socket.emit("edit_message", { id: messageId, username: username, uid: uid, room: room, msg: newText });
         }
       });
       
       $(document).on("click", ".delete-btn", function(){
         let messageId = $(this).data("id");
         if (confirm("Tem certeza que deseja excluir essa mensagem?")) {
-          socket.emit("delete_message", { id: messageId, username: username, room: room });
+          socket.emit("delete_message", { id: messageId, username: username, uid: uid, room: room });
         }
       });
       
@@ -443,7 +461,7 @@
         let emoji = $(this).data("emoji");
         let messageId = $(this).data("messageId");
         $("#emoji-panel-" + messageId).hide();
-        socket.emit("react_message", { message_id: messageId, username: username, room: room, emoji: emoji });
+        socket.emit("react_message", { message_id: messageId, username: username, uid: uid, room: room, emoji: emoji });
       });
       
       $(document).on("click", ".reply-btn", function(){
@@ -475,6 +493,7 @@
               console.log("Upload success:", response);
               let payload = { 
                 username: username, 
+                uid: uid, 
                 room: room, 
                 msg: "",  // mensagem em branco, pois é um arquivo
                 file_url: response.url,
