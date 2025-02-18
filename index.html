@@ -22,17 +22,22 @@
     };
     firebase.initializeApp(firebaseConfig);
     firebase.auth().onAuthStateChanged(function(user) {
-      if (user) {
-        const nomeExibicao = user.displayName ? user.displayName : user.email;
-        document.getElementById("userName").innerText = nomeExibicao;
-        let usernameInput = document.getElementById("username");
-        if (usernameInput) { usernameInput.value = nomeExibicao; }
-        let uidInput = document.getElementById("uid");
-        if (uidInput) { uidInput.value = user.uid; }
-      } else {
-        window.location.href = "/login";
+    if (user) {
+      console.log("UID do usuário:", user.uid); // <-- Aqui você depura o UID
+      const nomeExibicao = user.displayName ? user.displayName : user.email;
+      document.getElementById("userName").innerText = nomeExibicao;
+      let usernameInput = document.getElementById("username");
+      if (usernameInput) { 
+        usernameInput.value = nomeExibicao; 
       }
-    });
+      let uidInput = document.getElementById("uid");
+      if (uidInput) { 
+        uidInput.value = user.uid; 
+      }
+    } else {
+      window.location.href = "/login";
+    }
+  });
   </script>
   <style>
     body { background: #f8f9fa; }
