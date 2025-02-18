@@ -121,6 +121,7 @@ def chat():
     uid = session.get("uid")
     room = session.get("room")
     if not username or not uid or not room:
+        console.log("Opa, vc está pensando em ir aonde?")
         return redirect(url_for("index"))
     messages = Message.query.filter_by(room=room).order_by(Message.timestamp).all()
     return render_template("chat.html", username=username, uid=uid, room=room, messages=messages)
