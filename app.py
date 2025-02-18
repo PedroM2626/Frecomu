@@ -7,9 +7,9 @@ from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "sua_chave_secreta_muito_dificil"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///frecomu.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "PEDROM2007")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///frecomu.db')
+
 
 # Pasta para salvar uploads
 UPLOAD_FOLDER = os.path.join(app.root_path, "uploads")
