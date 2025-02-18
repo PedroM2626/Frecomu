@@ -89,7 +89,7 @@ def index():
                         error = "Senha incorreta."
                 if not username or not uid:
                     error = "Dados de usuário ausentes."
-                if not error:
+                if not error or username or uid:
                     session["username"] = username
                     session["uid"] = uid
                     session["room"] = room_name
