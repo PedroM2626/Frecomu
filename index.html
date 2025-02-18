@@ -25,8 +25,12 @@
       if (user) {
         const nomeExibicao = user.displayName ? user.displayName : user.email;
         document.getElementById("userName").innerText = nomeExibicao;
+        // Preenche o campo oculto "username" com o nome de exibição
         let usernameInput = document.getElementById("username");
         if (usernameInput) { usernameInput.value = nomeExibicao; }
+        // Preenche o campo oculto "uid" com o UID do usuário
+        let uidInput = document.getElementById("uid");
+        if (uidInput) { uidInput.value = user.uid; }
       } else {
         window.location.href = "/login";
       }
@@ -43,7 +47,7 @@
     <div class="container-fluid">
       <a class="navbar-brand" href="/">Frecomu</a>
       <div class="collapse navbar-collapse justify-content-end">
-        <!-- Use session.get("username") para comparar com o owner -->
+        <!-- Exibe o nome do usuário da sessão (pode ser atualizado pelo Firebase) -->
         <a href="/profile" class="btn btn-outline-light me-2" id="userName">{{ session.get("username") }}</a>
         <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
       </div>
@@ -52,16 +56,18 @@
 
   <div class="container mt-4">
     <h1 class="text-center mb-4">Frecomu</h1>
-    
+
     {% if error %}
       <div class="alert alert-danger">{{ error }}</div>
     {% endif %}
-    
+
     {% if room %}
       <!-- Formulário para entrar na sala -->
       <h3>Entrar na Sala: {{ room }}</h3>
       <form method="POST">
+        <!-- Campos ocultos para username e uid -->
         <input type="hidden" name="username" id="username">
+        <input type="hidden" name="uid" id="uid">
         <div class="mb-3">
           <label for="password" class="form-label">Senha (se for sala privada)</label>
           <input type="text" name="password" id="password" class="form-control" placeholder="Digite a senha">
@@ -88,9 +94,9 @@
         </div>
         <button type="submit" class="btn btn-primary w-100">Criar Sala</button>
       </form>
-      
+
       <hr>
-      
+
       <!-- Formulário de Pesquisa -->
       <h3>Pesquisar Sala</h3>
       <form method="GET">
@@ -99,9 +105,9 @@
         </div>
         <button type="submit" class="btn btn-secondary w-100">Pesquisar</button>
       </form>
-      
+
       <hr>
-      
+
       <!-- Lista de Salas -->
       <h3>Salas Disponíveis</h3>
       <ul class="list-group">
@@ -115,7 +121,7 @@
             {% endif %}
             <div>
               <a href="{{ url_for('index', room=room) }}" class="btn btn-sm btn-secondary">Entrar</a>
-              {% if info.owner == session.get("username") %}
+              {% if info.owner == session.get("uid") %}
                 <button class="btn btn-sm btn-outline-primary edit-room-btn" data-room="{{ room }}">Editar Sala</button>
                 <button class="btn btn-sm btn-outline-danger delete-room-btn" data-room="{{ room }}">Excluir Sala</button>
               {% endif %}
@@ -127,7 +133,7 @@
       </ul>
     {% endif %}
   </div>
-  
+
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     document.getElementById("logoutBtn").addEventListener("click", function(){
