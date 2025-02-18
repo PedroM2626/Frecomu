@@ -23,7 +23,8 @@
     firebase.initializeApp(firebaseConfig);
     firebase.auth().onAuthStateChanged(function(user) {
     if (user) {
-      console.log("UID do usuário:", user.uid); // <-- Aqui você depura o UID
+      console.log("UID do usuário:", user.uid);
+      // Preenche os campos ocultos com as informações do usuário:
       const nomeExibicao = user.displayName ? user.displayName : user.email;
       document.getElementById("userName").innerText = nomeExibicao;
       let usernameInput = document.getElementById("username");
@@ -36,7 +37,6 @@
       }
     } else {
       window.location.href = "/login";
-      console.log("erro desconhecido")
     }
   });
   </script>
@@ -70,14 +70,13 @@
       <h3>Entrar na Sala: {{ room }}</h3>
       <form method="POST">
         <input type="hidden" name="username" id="username">
-        <!-- Campo oculto para enviar o UID -->
         <input type="hidden" name="uid" id="uid">
         <div class="mb-3">
           <label for="password" class="form-label">Senha (se for sala privada)</label>
           <input type="text" name="password" id="password" class="form-control" placeholder="Digite a senha">
         </div>
         <button type="submit" class="btn btn-primary w-100">Entrar na Sala</button>
-      </form>
+      </form>      
       <hr>
       <a href="{{ url_for('index') }}" class="btn btn-secondary w-100">Voltar</a>
     {% else %}
