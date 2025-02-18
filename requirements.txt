@@ -8,3 +8,4 @@ eventlet
 werkzeug
 python-dotenv
 eventlet
+bs4
