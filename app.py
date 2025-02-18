@@ -87,7 +87,7 @@ def index():
                         error = "Senha é obrigatória para entrar nessa sala."
                     elif entered_password != room_info["password"]:
                         error = "Senha incorreta."
-                if not username or not uid:                                                  //problema recorrente
+                if not username or not uid:                                                  #problema recorrente
                     error = "Dados de usuário ausentes."
                 if not error or username or uid:
                     session["username"] = username
@@ -120,8 +120,8 @@ def chat():
     username = session.get("username")
     uid = session.get("uid")
     room = session.get("room")
-    //if not username or not uid or not room:                                 //problema recorrente
-        //return redirect(url_for("index"))
+    #if not username or not uid or not room:                                 #problema recorrente
+        #return redirect(url_for("index"))
     messages = Message.query.filter_by(room=room).order_by(Message.timestamp).all()
     return render_template("chat.html", username=username, uid=uid, room=room, messages=messages)
 
