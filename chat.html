@@ -32,7 +32,7 @@
       font-size: 0.7rem;
       padding: 2px 5px;
     }
-    /* Painel de emojis (inicialmente oculto) */
+    /* Painel de emojis */
     .emoji-panel {
       margin-top: 5px;
       display: none;
@@ -90,14 +90,38 @@
       color: #555;
     }
   </style>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
+      authDomain: "frecomu.firebaseapp.com",
+      databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
+      projectId: "frecomu",
+      storageBucket: "frecomu.firebasestorage.app",
+      messagingSenderId: "514151976144",
+      appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
+      measurementId: "G-7WVRRMF51Y"
+    };
+    firebase.initializeApp(firebaseConfig);
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        const nomeExibicao = user.displayName ? user.displayName : user.email;
+        document.getElementById("userName").innerText = nomeExibicao;
+        let usernameInput = document.getElementById("username");
+        if (usernameInput) { usernameInput.value = nomeExibicao; }
+      } else {
+        window.location.href = "/login";
+      }
+    });
+  </script>
 </head>
 <body>
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
+    <div class="container-fluid">
       <a class="navbar-brand" href="/">Frecomu</a>
       <div class="collapse navbar-collapse justify-content-end">
-        <span class="navbar-text text-white me-2" id="userName">{{ username }}</span>
+        <!-- Use session.get("username") para comparar com o owner -->
+        <a href="/profile" class="btn btn-outline-light me-2" id="userName">{{ session.get("username") }}</a>
         <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
       </div>
     </div>
@@ -115,7 +139,11 @@
             </div>
           {% endif %}
           <span class="message-content">
-            {{ message.username }}:
+            {% if message.uid and message.uid == current_uid %}
+              {{ current_display_name }}:
+            {% else %}
+              {{ message.username }}:
+            {% endif %}
             {% if message.file_url %}
               {% if message.file_type.startswith("audio") %}
                 <audio controls src="{{ message.file_url }}"></audio>
@@ -128,7 +156,7 @@
               {{ message.msg }}
             {% endif %}
           </span>
-          {% if message.username == username and message.username != "Sistema" %}
+          {% if message.uid and message.uid == current_uid and message.username != "Sistema" %}
             <button class="btn btn-sm btn-warning ms-2 edit-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Editar</button>
             <button class="btn btn-sm btn-danger ms-2 delete-btn" data-id="{{ message.id }}">Excluir</button>
           {% endif %}
@@ -137,7 +165,6 @@
             <button class="btn btn-sm btn-info ms-2 reaction-btn" data-id="{{ message.id }}">Reagir</button>
             <div class="emoji-panel" id="emoji-panel-{{ message.id }}"></div>
           {% endif %}
-          <!-- Renderiza as reações já cadastradas agrupadas por emoji -->
           <div class="reactions" id="reactions-{{ message.id }}">
             {% for group in message.reactions|groupby('emoji') %}
               <span class="reaction-badge">{{ group.grouper }} {{ group.list|length }}</span>
@@ -166,11 +193,16 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.1/socket.io.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
   <script>
+
     let replyToMessageId = null;
+    
+    // Função para cancelar resposta
     function cancelReply() {
       replyToMessageId = null;
       $("#reply-preview").hide();
     }
+    
+    // Função para rolar até uma mensagem
     function scrollToMessage(messageId) {
       let target = $("#message-" + messageId);
       if (target.length) {
@@ -179,15 +211,23 @@
         }, 500);
       }
     }
+    
+    // Inicialização
     $(document).ready(function(){
       const socket = io();
       const username = "{{ username }}";
       const room = "{{ room }}";
       const availableEmojis = ["👍", "❤️", "😂", "😮", "😱", "😎", "😢", "😡", "😭", "🤤", "💀"];
       
+      // Emitir evento de join e incluir uid (o backend deve enviar esse campo nas mensagens)
       socket.emit("join", {username: username, room: room});
       
       socket.on("message", function(data){
+        // Se o backend enviar o uid da mensagem, compare com o uid atual (passado pelo backend como current_uid)
+        if (data.uid && data.uid === "{{ current_uid }}") {
+          // Garante que, para mensagens do usuário, seja exibido o nome atual
+          data.username = "{{ current_display_name }}";
+        }
         let msgClass = data.id === 0 ? "message system" : "message";
         let messageDiv = $('<div class="' + msgClass + '" id="message-' + data.id + '">');
         
@@ -213,7 +253,7 @@
         let messageContent = $('<span class="message-content">').html(content);
         messageDiv.append(messageContent);
         
-        if (data.username === username && data.id !== 0) {
+        if (data.uid && data.uid === "{{ current_uid }}" && data.id !== 0) {
           let editBtn = $('<button class="btn btn-sm btn-warning ms-2 edit-btn">Editar</button>');
           let deleteBtn = $('<button class="btn btn-sm btn-danger ms-2 delete-btn">Excluir</button>');
           editBtn.data("id", data.id).data("msg", data.msg);
@@ -227,7 +267,6 @@
           let emojiPanel = $('<div class="emoji-panel" id="emoji-panel-' + data.id + '"></div>');
           messageDiv.append(replyBtn, reactBtn, emojiPanel);
         }
-        // As reações já foram renderizadas no template, mas caso seja necessário atualizar via socket:
         let reactionDiv = $('<div class="reactions" id="reactions-' + data.id + '"></div>');
         messageDiv.append(reactionDiv);
         
@@ -254,7 +293,12 @@
           let count = data.reactions[emoji];
           let reactionBadge = $('<span class="reaction-badge">').text(emoji + " " + count);
           reactionBadge.click(function(){
-            socket.emit("react_message", { message_id: data.message_id, username: username, room: room, emoji: emoji });
+            socket.emit("react_message", {
+              message_id: data.message_id,
+              username: username,
+              room: room,
+              emoji: emoji
+            });
           });
           reactionContainer.append(reactionBadge);
         }
@@ -363,7 +407,7 @@
         }
       });
       
-      // Scroll automático para a última mensagem após a janela carregar
+      // Scroll automático para a última mensagem após carregar a janela
       $(window).on('load', function() {
         setTimeout(function(){
           $("#chat-container").scrollTop($("#chat-container")[0].scrollHeight);
