@@ -78,29 +78,6 @@ def upload():
         "file_type": file_type
     })
 
-# Adicione esta nova rota para preview de links
-@app.route("/get_preview", methods=["GET"])
-def get_preview():
-    url = request.args.get('url')
-    try:
-        response = requests.get(url, timeout=5)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        preview_data = {
-            'title': soup.find('meta', property='og:title') or soup.title,
-            'description': soup.find('meta', property='og:description') or soup.find('meta', attrs={'name': 'description'}),
-            'image': soup.find('meta', property='og:image'),
-            'url': url
-        }
-        
-        # Limpar os dados
-        for key in preview_data:
-            if preview_data[key]:
-                preview_data[key] = preview_data[key].get('content', preview_data[key].string if hasattr(preview_data[key], 'string') else str(preview_data[key]))
-        
-        return jsonify(preview_data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 
 # Rotas de autenticação (login e register) devem existir
