@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 import datetime
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
+from bs4 import BeautifulSoup
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "sua_chave_secreta_muito_dificil"
@@ -34,8 +35,8 @@ class Message(db.Model):
     username = db.Column(db.String(80), nullable=False)
     room = db.Column(db.String(80), nullable=False)
     msg = db.Column(db.Text, nullable=True)  # Pode ser vazio para mensagens de áudio
-    file_url = db.Column(db.String(255), nullable=True)  # URL do arquivo (áudio, vídeo, documento)
-    file_type = db.Column(db.String(50), nullable=True)  # 'audio', 'video', 'document'
+    file_url = db.Column(db.String(255), nullable=True)  # URL do arquivo (áudio, vídeo, documento, foto)
+    file_type = db.Column(db.String(50), nullable=True)  # 'audio', 'video', 'document', 'photo'
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     reply_to = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=True)
     parent = db.relationship('Message', remote_side=[id], uselist=False)
@@ -49,10 +50,58 @@ class Reaction(db.Model):
     emoji = db.Column(db.String(10), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-# Rota para servir arquivos enviados (uploads)
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'mp3', 'mp4', 'pdf'}
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Modifique a rota de upload
+@app.route("/upload", methods=["POST"])
+def upload():
+    if 'file' not in request.files:
+        return jsonify({"error": "Nenhum arquivo enviado."}), 400
+    file = request.files['file']
+    if file.filename == "":
+        return jsonify({"error": "Nome de arquivo inválido."}), 400
+    if not allowed_file(file.filename):
+        return jsonify({"error": "Tipo de arquivo não permitido."}), 400
+    
+    filename = secure_filename(file.filename)
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    file.save(filepath)
+    
+    # Determinar tipo de arquivo
+    file_type = file.mimetype
+    return jsonify({
+        "url": url_for('uploaded_file', filename=filename),
+        "file_type": file_type
+    })
+
+# Adicione esta nova rota para preview de links
+@app.route("/get_preview", methods=["GET"])
+def get_preview():
+    url = request.args.get('url')
+    try:
+        response = requests.get(url, timeout=5)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        preview_data = {
+            'title': soup.find('meta', property='og:title') or soup.title,
+            'description': soup.find('meta', property='og:description') or soup.find('meta', attrs={'name': 'description'}),
+            'image': soup.find('meta', property='og:image'),
+            'url': url
+        }
+        
+        # Limpar os dados
+        for key in preview_data:
+            if preview_data[key]:
+                preview_data[key] = preview_data[key].get('content', preview_data[key].string if hasattr(preview_data[key], 'string') else str(preview_data[key]))
+        
+        return jsonify(preview_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 # Rotas de autenticação (login e register) devem existir
 @app.route("/login")

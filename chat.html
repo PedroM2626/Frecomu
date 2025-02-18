@@ -6,7 +6,76 @@
   <link rel="icon" type="image/png" href="/frecomu/assets/FrecomuIcon.webp">
   <title>Chat - Sala {{ room }}</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
+      authDomain: "frecomu.firebaseapp.com",
+      databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
+      projectId: "frecomu",
+      storageBucket: "frecomu.firebasestorage.app",
+      messagingSenderId: "514151976144",
+      appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
+      measurementId: "G-7WVRRMF51Y"
+    };
+    firebase.initializeApp(firebaseConfig);
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        const nomeExibicao = user.displayName ? user.displayName : user.email;
+        document.getElementById("userName").innerText = nomeExibicao;
+        let usernameInput = document.getElementById("username");
+        if (usernameInput) { usernameInput.value = nomeExibicao; }
+      } else {
+        window.location.href = "/login";
+      }
+    });
+  </script>
   <style>
+    /* Preview de links */
+    .link-preview {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin: 10px 0;
+        max-width: 400px;
+        overflow: hidden;
+    }
+    .link-preview img {
+        width: 100%;
+        max-height: 200px;
+        object-fit: cover;
+    }
+    .link-preview-content {
+        padding: 10px;
+    }
+    .link-preview-title {
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .link-preview-description {
+        font-size: 0.9em;
+        color: #666;
+        margin-bottom: 5px;
+    }
+    .link-preview-url {
+        font-size: 0.8em;
+        color: #999;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    /* Mensagens com imagem */
+    .message img {
+        max-width: 300px;
+        border-radius: 8px;
+        margin-top: 5px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .message img:hover {
+        transform: scale(1.05);
+    }
     /* Container de chat */
     #chat-container {
       height: 60vh;
@@ -94,10 +163,11 @@
 <body>
   <!-- Navbar -->
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
+    <div class="container-fluid">
       <a class="navbar-brand" href="/">Frecomu</a>
       <div class="collapse navbar-collapse justify-content-end">
-        <span class="navbar-text text-white me-2" id="userName">{{ username }}</span>
+        <!-- Use session.get("username") para comparar com o owner -->
+        <a href="/profile" class="btn btn-outline-light me-2" id="userName">{{ session.get("username") }}</a>
         <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
       </div>
     </div>
@@ -108,6 +178,7 @@
     <!-- Área de chat -->
     <div id="chat-container">
       {% for message in messages %}
+        <!-- Modifique a exibição das mensagens -->
         <div class="message {% if message.username == 'Sistema' %}system{% endif %}" id="message-{{ message.id }}">
           {% if message.reply_to and message.parent %}
             <div class="reply-snippet" onclick="scrollToMessage({{ message.reply_to }})">
@@ -117,17 +188,26 @@
           <span class="message-content">
             {{ message.username }}:
             {% if message.file_url %}
+              {% if message.file_type.startswith("image") %}
+                <img src="{{ message.file_url }}" alt="Imagem enviada" class="uploaded-image">
               {% if message.file_type.startswith("audio") %}
                 <audio controls src="{{ message.file_url }}"></audio>
               {% elif message.file_type.startswith("video") %}
                 <video controls width="250" src="{{ message.file_url }}"></video>
+              {% elif message.file_type.startswith("image") %}
+                <img src="{{ message.file_url }}" alt="Imagem" style="max-width:250px;"/>
               {% else %}
                 <a href="{{ message.file_url }}" target="_blank">Download Documento</a>
               {% endif %}
             {% else %}
-              {{ message.msg }}
+              <span class="message-text">{{ message.msg | urlize }}</span>
             {% endif %}
           </span>
+
+          {% if not message.file_url %}
+            <div class="link-previews" id="previews-{{ message.id }}"></div>
+          {% endif %}
+
           {% if message.username == username and message.username != "Sistema" %}
             <button class="btn btn-sm btn-warning ms-2 edit-btn" data-id="{{ message.id }}" data-msg="{{ message.msg }}">Editar</button>
             <button class="btn btn-sm btn-danger ms-2 delete-btn" data-id="{{ message.id }}">Excluir</button>
@@ -179,6 +259,39 @@
         }, 500);
       }
     }
+    // Função para detectar URLs e criar previews
+    function createLinkPreviews(elementId, text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const matches = text.match(urlRegex);
+        const container = $(`#previews-${elementId}`);
+        
+        if (matches) {
+            matches.forEach(url => {
+                // Criar elemento de preview
+                const preview = $('<div class="link-preview">')
+                    .append('<div class="link-preview-loading">Carregando preview...</div>');
+                
+                // Fazer requisição para o backend
+                $.getJSON('/get_preview?url=' + encodeURIComponent(url))
+                    .done(data => {
+                        preview.empty();
+                        if (!data.error) {
+                            if (data.image) {
+                                preview.append($('<img>').attr('src', data.image));
+                            }
+                            const content = $('<div class="link-preview-content">')
+                                .append($('<div class="link-preview-title">').text(data.title || url))
+                                .append($('<div class="link-preview-description">').text(data.description || ''))
+                                .append($('<a class="link-preview-url">').attr('href', url).text(new URL(url).hostname));
+                            preview.append(content);
+                        }
+                    })
+                    .fail(() => preview.remove());
+                
+                container.append(preview);
+            });
+        }
+    }
     $(document).ready(function(){
       const socket = io();
       const username = "{{ username }}";
@@ -199,17 +312,31 @@
         }
         
         let content = data.username + ': ';
-        if (data.file_url) {
+        if (data.file_url) {      dreffwfwfwfwf
           if (data.file_type.startsWith("audio")) {
             content += '<audio controls src="' + data.file_url + '"></audio>';
           } else if (data.file_type.startsWith("video")) {
             content += '<video controls width="250" src="' + data.file_url + '"></video>';
+          } else if (data.file_type.startsWith("image")) {
+            content += '<img src="' + data.file_url + '" alt="Imagem" style="max-width:250px;"/>';
           } else {
             content += '<a href="' + data.file_url + '" target="_blank">Download Documento</a>';
           }
         } else {
           content += data.msg;
         }
+
+        if (!data.file_url) {
+            // Processar links
+            const text = data.msg;
+            messageContent.html(text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank">$1</a>'));
+            
+            // Adicionar preview de links
+            setTimeout(() => {
+                createLinkPreviews(data.id, text);
+            }, 100);
+        }
+
         let messageContent = $('<span class="message-content">').html(content);
         messageDiv.append(messageContent);
         
@@ -227,7 +354,6 @@
           let emojiPanel = $('<div class="emoji-panel" id="emoji-panel-' + data.id + '"></div>');
           messageDiv.append(replyBtn, reactBtn, emojiPanel);
         }
-        // As reações já foram renderizadas no template, mas caso seja necessário atualizar via socket:
         let reactionDiv = $('<div class="reactions" id="reactions-' + data.id + '"></div>');
         messageDiv.append(reactionDiv);
         
@@ -370,6 +496,32 @@
         }, 100);
       });
       
+      // Lightbox para imagens
+    $(document).on('click', '.uploaded-image', function() {
+        const src = $(this).attr('src');
+        const lightbox = $('<div class="lightbox">')
+            .css({
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                background: 'rgba(0,0,0,0.8)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 9999
+            })
+            .click(() => lightbox.remove())
+            .append($('<img>')
+                .css('max-height', '90vh')
+                .attr('src', src));
+        $('body').append(lightbox);
+    });
+    
+    // Atualize o seletor do input de arquivo para aceitar apenas imagens inicialmente
+    $("#fileInput").attr("accept", "image/*");
+
     });
   </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
