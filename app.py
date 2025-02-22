@@ -7,8 +7,8 @@ from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "sua_chave_secreta_muito_dificil"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///frecomu.db'
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "PEDROM2007")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('SQLALCHEMY_DATABASE_URI', 'sqlite:///frecomu.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Pasta para salvar uploads
@@ -24,18 +24,20 @@ migrate = Migrate(app, db)
 rooms = {}
 # Exemplo:
 # rooms = {
-#     "geral": {"private": False, "password": None, "owner": "nome@exemplo.com"},
-#     "amigos": {"private": True, "password": "123456", "owner": "nome2@exemplo.com"}
+#     "geral": {"private": False, "password": None, "owner": "uid1"},
+#     "amigos": {"private": True, "password": "123456", "owner": "uid2"}
 # }
 
-# Modelo de Mensagem atualizado (suporta arquivos)
+# Modelo de Mensagem atualizado (inclui UID e foto de perfil)
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    uid = db.Column(db.String(80), nullable=False)  # UID do usuário
     username = db.Column(db.String(80), nullable=False)
     room = db.Column(db.String(80), nullable=False)
     msg = db.Column(db.Text, nullable=True)  # Pode ser vazio para mensagens de áudio
     file_url = db.Column(db.String(255), nullable=True)  # URL do arquivo (áudio, vídeo, documento)
     file_type = db.Column(db.String(50), nullable=True)  # 'audio', 'video', 'document'
+    photo_url = db.Column(db.String(255), nullable=True)  # Foto de perfil no momento do envio
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     reply_to = db.Column(db.Integer, db.ForeignKey('message.id'), nullable=True)
     parent = db.relationship('Message', remote_side=[id], uselist=False)
@@ -54,7 +56,7 @@ class Reaction(db.Model):
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-# Rotas de autenticação (login e register) devem existir
+# Rotas de autenticação (login e register)
 @app.route("/login")
 def login():
     return render_template("login.html")
@@ -71,8 +73,9 @@ def index():
     
     if request.method == "POST":
         if room_param:
-            # Modo "entrar" na sala (username preenchido via Firebase)
+            # Modo "entrar" na sala (os campos username e uid devem ser preenchidos via Firebase no frontend)
             username = request.form.get("username", "").strip()
+            uid = request.form.get("uid", "").strip()
             room_name = room_param
             entered_password = request.form.get("password", "").strip()
             if room_name not in rooms:
@@ -84,10 +87,12 @@ def index():
                         error = "Senha é obrigatória para entrar nessa sala."
                     elif entered_password != room_info["password"]:
                         error = "Senha incorreta."
-                if not username:
-                    error = "Você deve inserir seu nome."
+                if not username or not uid:
+                    print("dados ausentes")
+                    #error = "Dados de usuário ausentes."
                 if not error:
                     session["username"] = username
+                    session["uid"] = uid
                     session["room"] = room_name
                     return redirect(url_for("chat"))
         else:
@@ -100,23 +105,22 @@ def index():
             elif room_name in rooms:
                 error = "Essa sala já existe."
             else:
-                # Armazena o usuário que criou a sala como owner
-                rooms[room_name] = {"private": is_private, "password": password, "owner": session.get("username")}
+                # Armazena o UID do usuário que criou a sala como owner
+                rooms[room_name] = {"private": is_private, "password": password, "owner": session.get("uid")}
                 return redirect(url_for("index", room=room_name))
     
-    # Passa o usuário logado como current_user para o template
-    # Passa o usuário logado como current_user para o template
-    return render_template("index.html", rooms=rooms, error=error, room=room_param, current_user=session.get("username"))
+    return render_template("index.html", rooms=rooms, error=error, room=room_param, current_user=session.get("uid"))
 
 # Rota do chat
 @app.route("/chat")
 def chat():
     username = session.get("username")
+    uid = session.get("uid")
     room = session.get("room")
-    if not username or not room:
-        return redirect(url_for("index"))
+    #if not username or not uid or not room:
+    #    return redirect(url_for("index"))
     messages = Message.query.filter_by(room=room).order_by(Message.timestamp).all()
-    return render_template("chat.html", username=username, room=room, messages=messages)
+    return render_template("chat.html", username=username, uid=uid, room=room, messages=messages)
 
 # Rota para upload de arquivos
 @app.route("/upload", methods=["POST"])
@@ -143,30 +147,25 @@ def edit_room():
     new_room = request.form.get("new_room", "").strip()
     if old_room not in rooms:
         return jsonify({"error": "Sala não existe."}), 400
-    if rooms[old_room]["owner"] != session.get("username"):
+    if rooms[old_room]["owner"] != session.get("uid"):
         return jsonify({"error": "Você não é o criador desta sala."}), 403
     if new_room in rooms:
         return jsonify({"error": "O novo nome já está em uso."}), 400
-    # Atualiza a sala: copia o conteúdo para a nova chave e remove a antiga
     room_info = rooms.pop(old_room)
     rooms[new_room] = room_info
     if session.get("room") == old_room:
         session["room"] = new_room
     return jsonify({"new_room": new_room}), 200
 
-# Rota para excluir a sala (apenas para o owner)
+# Rota para excluir a sala (apenas para o owner) – também deleta as mensagens associadas
 @app.route("/delete_room", methods=["POST"])
 def delete_room():
     room = request.form.get("room")
     if room not in rooms:
         return jsonify({"error": "Sala não existe."}), 400
-    if rooms[room]["owner"] != session.get("username"):
+    if rooms[room]["owner"] != session.get("uid"):
         return jsonify({"error": "Você não é o criador desta sala."}), 403
-    # Remove a sala do dicionário e apaga as mensagens associadas
-    # Remove a sala do dicionário e apaga as mensagens associadas
     rooms.pop(room)
-    Message.query.filter_by(room=room).delete()
-    db.session.commit()
     Message.query.filter_by(room=room).delete()
     db.session.commit()
     if session.get("room") == room:
@@ -177,31 +176,41 @@ def delete_room():
 @socketio.on("join")
 def on_join(data):
     username = data["username"]
+    uid = data.get("uid")
     room = data["room"]
     join_room(room)
     system_msg = f"{username} entrou na sala."
-    system_message = Message(username="Sistema", room=room, msg=system_msg)
+    system_message = Message(uid="system", username="Sistema", room=room, msg=system_msg)
     db.session.add(system_message)
     db.session.commit()
-    emit("message", {"id": system_message.id, "username": "Sistema", "msg": system_msg, "reply_to": None}, room=room)
+    emit("message", {
+        "id": system_message.id,
+        "username": "Sistema",
+        "msg": system_msg,
+        "reply_to": None,
+        "uid": "system",
+        "photoURL": None
+    }, room=room)
 
 @socketio.on("message")
 def handle_message(data):
     room = data["room"]
     username = data["username"]
+    uid = data.get("uid")
     msg_text = data.get("msg")  # pode ser None se for arquivo
     reply_to = data.get("reply_to")
     file_url = data.get("file_url")
     file_type = data.get("file_type")
-    # Não armazenamos a foto de perfil no banco; o cliente irá enviar o photoURL
-    message = Message(username=username, room=room, msg=msg_text, reply_to=reply_to, file_url=file_url, file_type=file_type)
+    photoURL = data.get("photoURL")  # Foto de perfil enviada pelo cliente
+    message = Message(uid=uid, username=username, room=room, msg=msg_text, 
+                      reply_to=reply_to, file_url=file_url, file_type=file_type,
+                      photo_url=photoURL)
     db.session.add(message)
     db.session.commit()
-    # Inclui a foto de perfil (se enviada) na resposta do socket
-    photoURL = data.get("photoURL")
     emit("message", {
         "id": message.id,
         "username": username,
+        "uid": uid,
         "msg": msg_text,
         "reply_to": reply_to,
         "file_url": file_url,
@@ -209,19 +218,19 @@ def handle_message(data):
         "photoURL": photoURL
     }, room=room)
 
-
 @socketio.on("edit_message")
 def handle_edit_message(data):
     message_id = data["id"]
     new_msg = data["msg"]
     username = data["username"]
+    uid = data.get("uid")
     room = data["room"]
     message = Message.query.get(message_id)
     if message:
-        if message.username == username:
+        if message.uid == uid:
             message.msg = new_msg
             db.session.commit()
-            emit("edit_message", {"id": message_id, "username": username, "msg": new_msg}, room=room)
+            emit("edit_message", {"id": message_id, "username": username, "msg": new_msg, "uid": uid}, room=room)
         else:
             emit("error", {"msg": "Você não pode editar mensagens de outros usuários."})
     else:
@@ -230,11 +239,11 @@ def handle_edit_message(data):
 @socketio.on("delete_message")
 def handle_delete_message(data):
     message_id = data["id"]
-    username = data["username"]
+    uid = data.get("uid")
     room = data["room"]
     message = Message.query.get(message_id)
     if message:
-        if message.username == username:
+        if message.uid == uid:
             db.session.delete(message)
             db.session.commit()
             emit("delete_message", {"id": message_id}, room=room)
@@ -249,15 +258,23 @@ def on_leave(data):
     room = data["room"]
     leave_room(room)
     system_msg = f"{username} saiu da sala."
-    system_message = Message(username="Sistema", room=room, msg=system_msg)
+    system_message = Message(uid="system", username="Sistema", room=room, msg=system_msg)
     db.session.add(system_message)
     db.session.commit()
-    emit("message", {"id": system_message.id, "username": "Sistema", "msg": system_msg, "reply_to": None}, room=room)
+    emit("message", {
+        "id": system_message.id,
+        "username": "Sistema",
+        "msg": system_msg,
+        "reply_to": None,
+        "uid": "system",
+        "photoURL": None
+    }, room=room)
 
 @socketio.on("react_message")
 def handle_react_message(data):
     message_id = data.get("message_id")
     emoji = data.get("emoji")
+    uid = data.get("uid")
     username = data.get("username")
     room = data.get("room")
     existing = Reaction.query.filter_by(message_id=message_id, username=username, emoji=emoji).first()

@@ -5,13 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="/frecomu/assets/FrecomuIcon.webp">
   <title>Login - Frecomu</title>
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
   <script>
-    // Configure com os dados do seu projeto Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
       authDomain: "frecomu.firebaseapp.com",
@@ -23,10 +20,30 @@
       measurementId: "G-7WVRRMF51Y"
     };
     firebase.initializeApp(firebaseConfig);
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user) {
+        console.log("UID do usuário:", user.uid);
+        const nomeExibicao = user.displayName ? user.displayName : user.email;
+        document.getElementById("userName").innerText = nomeExibicao;
+      } else {
+        console.log("nothing");
+      }
+    });
   </script>
   <style>
     body { background: #f8f9fa; }
     .card { margin-top: 80px; }
+    .input-group { position: relative; }
+    .input-group img {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      width: 20px;
+      opacity: 0.6;
+      z-index: 5;
+    }
   </style>
 </head>
 <body>
@@ -41,7 +58,10 @@
         </div>
         <div class="mb-3">
           <label for="password" class="form-label">Senha</label>
-          <input type="password" id="password" class="form-control" placeholder="Sua senha">
+          <div class="input-group">
+            <input type="password" id="password" class="form-control" placeholder="Sua senha">
+            <img src="https://img.icons8.com/material-outlined/24/000000/visible--v1.png" id="togglePassword" alt="Mostrar Senha">
+          </div>
         </div>
         <button id="loginBtn" class="btn btn-primary w-100">Entrar</button>
         <div class="text-center mt-3">
@@ -51,10 +71,17 @@
       </div>
     </div>
   </div>
-
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    const togglePassword = document.querySelector("#togglePassword");
+    const passwordInput = document.querySelector("#password");
+    togglePassword.addEventListener("click", function () {
+      const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+      passwordInput.setAttribute("type", type);
+      this.src = type === "password" 
+        ? "https://img.icons8.com/material-outlined/24/000000/visible--v1.png"
+        : "https://img.icons8.com/material-outlined/24/000000/closed-eye.png";
+    });
     document.getElementById("loginBtn").addEventListener("click", function(){
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
@@ -66,15 +93,12 @@
           document.getElementById("error").innerText = error.message;
         });
     });
-
-    // Adicionando funcionalidade de redefinição de senha
-    document.getElementById("resetPassword").addEventListener("click", function() {
+    document.getElementById("resetPassword").addEventListener("click", function(){
       const email = document.getElementById("email").value;
       if (!email) {
         document.getElementById("error").innerText = "Por favor, insira seu email para redefinir a senha.";
         return;
       }
-      
       firebase.auth().sendPasswordResetEmail(email)
         .then(() => {
           document.getElementById("error").innerText = "Email de redefinição enviado! Verifique sua caixa de entrada.";

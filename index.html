@@ -27,6 +27,9 @@
         document.getElementById("userName").innerText = nomeExibicao;
         let usernameInput = document.getElementById("username");
         if (usernameInput) { usernameInput.value = nomeExibicao; }
+        // Envia também o UID do usuário
+        let uidInput = document.getElementById("uid");
+        if (uidInput) { uidInput.value = user.uid; }
       } else {
         window.location.href = "/login";
       }
@@ -43,7 +46,7 @@
     <div class="container-fluid">
       <a class="navbar-brand" href="/">Frecomu</a>
       <div class="collapse navbar-collapse justify-content-end">
-        <!-- Use session.get("username") para comparar com o owner -->
+        <!-- Exibe o nome do usuário -->
         <a href="/profile" class="btn btn-outline-light me-2" id="userName">{{ session.get("username") }}</a>
         <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
       </div>
@@ -62,6 +65,8 @@
       <h3>Entrar na Sala: {{ room }}</h3>
       <form method="POST">
         <input type="hidden" name="username" id="username">
+        <!-- Campo oculto para enviar o UID -->
+        <input type="hidden" name="uid" id="uid">
         <div class="mb-3">
           <label for="password" class="form-label">Senha (se for sala privada)</label>
           <input type="text" name="password" id="password" class="form-control" placeholder="Digite a senha">
@@ -115,7 +120,7 @@
             {% endif %}
             <div>
               <a href="{{ url_for('index', room=room) }}" class="btn btn-sm btn-secondary">Entrar</a>
-              {% if info.owner == session.get("username") %}
+              {% if info.owner == session.get("uid") %}
                 <button class="btn btn-sm btn-outline-primary edit-room-btn" data-room="{{ room }}">Editar Sala</button>
                 <button class="btn btn-sm btn-outline-danger delete-room-btn" data-room="{{ room }}">Excluir Sala</button>
               {% endif %}

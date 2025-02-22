@@ -121,6 +121,8 @@
                 <audio controls src="{{ message.file_url }}"></audio>
               {% elif message.file_type.startswith("video") %}
                 <video controls width="250" src="{{ message.file_url }}"></video>
+              {% elif message.file_type.startswith("image") %}
+                <img src="{{ message.file_url }}" alt="Imagem" class="img-fluid" style="max-width:200px;">
               {% else %}
                 <a href="{{ message.file_url }}" target="_blank">Download Documento</a>
               {% endif %}
@@ -204,6 +206,8 @@
             content += '<audio controls src="' + data.file_url + '"></audio>';
           } else if (data.file_type.startsWith("video")) {
             content += '<video controls width="250" src="' + data.file_url + '"></video>';
+          } else if (data.file_type.startsWith("image")) {
+            content += '<img src="' + data.file_url + '" alt="Imagem" class="img-fluid" style="max-width:200px;">';
           } else {
             content += '<a href="' + data.file_url + '" target="_blank">Download Documento</a>';
           }
@@ -227,7 +231,6 @@
           let emojiPanel = $('<div class="emoji-panel" id="emoji-panel-' + data.id + '"></div>');
           messageDiv.append(replyBtn, reactBtn, emojiPanel);
         }
-        // As reações já foram renderizadas no template, mas caso seja necessário atualizar via socket:
         let reactionDiv = $('<div class="reactions" id="reactions-' + data.id + '"></div>');
         messageDiv.append(reactionDiv);
         
@@ -267,6 +270,11 @@
           if (replyToMessageId) {
             payload.reply_to = replyToMessageId;
           }
+          // Inclui também o UID e a foto de perfil (se disponível) para que o backend armazene
+          let uid = "{{ uid }}";
+          let photoURL = "{{ photoURL or '' }}";
+          payload.uid = uid;
+          payload.photoURL = photoURL;
           socket.emit("message", payload);
           $("#mensagem").val('');
           cancelReply();
@@ -285,14 +293,16 @@
         let currentMsg = $(this).data("msg");
         let newText = prompt("Editar mensagem:", currentMsg);
         if (newText !== null && newText.trim() !== "") {
-          socket.emit("edit_message", { id: messageId, username: username, room: room, msg: newText });
+          let uid = "{{ uid }}";
+          socket.emit("edit_message", { id: messageId, username: username, room: room, msg: newText, uid: uid });
         }
       });
       
       $(document).on("click", ".delete-btn", function(){
         let messageId = $(this).data("id");
         if (confirm("Tem certeza que deseja excluir essa mensagem?")) {
-          socket.emit("delete_message", { id: messageId, username: username, room: room });
+          let uid = "{{ uid }}";
+          socket.emit("delete_message", { id: messageId, username: username, room: room, uid: uid });
         }
       });
       
@@ -317,7 +327,8 @@
         let emoji = $(this).data("emoji");
         let messageId = $(this).data("messageId");
         $("#emoji-panel-" + messageId).hide();
-        socket.emit("react_message", { message_id: messageId, username: username, room: room, emoji: emoji });
+        let uid = "{{ uid }}";
+        socket.emit("react_message", { message_id: messageId, username: username, room: room, emoji: emoji, uid: uid });
       });
       
       $(document).on("click", ".reply-btn", function(){
@@ -352,7 +363,9 @@
                 room: room, 
                 msg: "",  // mensagem em branco, pois é um arquivo
                 file_url: response.url,
-                file_type: response.file_type
+                file_type: response.file_type,
+                uid: "{{ uid }}",
+                photoURL: "{{ photoURL or '' }}"
               };
               socket.emit("message", payload);
             },
