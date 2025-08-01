@@ -1,6 +1,5 @@
 # Frecomu
 
-![Frecomu Logo](./assets/logo.png)
 
 **Frecomu** é um aplicativo de chat em tempo real feito em Flask + Socket.IO + SQLite.  
 Permite que seus usuários:
