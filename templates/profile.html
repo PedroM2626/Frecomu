@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" type="image/png" href="/frecomu/assets/FrecomuIcon.webp">
   <title>Perfil do Usuário - Frecomu</title>
-  <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -31,182 +31,860 @@
         document.getElementById("currentUsername").value = user.displayName || "";
         document.getElementById("userName").innerText = user.displayName || user.email;
         document.getElementById("currentProfilePic").src = user.photoURL || "/static/default_profile.png";
+        document.getElementById("navbarProfilePic").src = user.photoURL || "/static/default_profile.png";
+        document.getElementById("userEmail").textContent = user.email;
+        document.getElementById("memberSince").textContent = new Date(user.metadata.creationTime).toLocaleDateString('pt-BR');
       }
     });
   </script>
   <style>
-    body { background: #f8f9fa; }
-    .container { max-width: 600px; margin-top: 50px; }
-    .profile-img {
-      width: 100px;
-      height: 100px;
-      object-fit: cover;
-      border-radius: 50%;
-      border: 2px solid #ccc;
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --warning-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --text-dark: #2c3e50;
+      --text-light: #ffffff;
+      --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      --shadow-hover: 0 15px 35px 0 rgba(31, 38, 135, 0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--primary-gradient);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
+      animation: backgroundFloat 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes backgroundFloat {
+      0% {
+        transform: translateY(0px) scale(1);
+      }
+      100% {
+        transform: translateY(-15px) scale(1.03);
+      }
+    }
+
+    .navbar {
+      background: var(--glass-bg) !important;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 15px 0;
+      position: relative;
+      z-index: 1000;
+    }
+
+    .navbar-brand {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
     .navbar-profile {
       display: flex;
       align-items: center;
-      gap: 10px;
-    }
-    .navbar-profile-img {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #fff;
+      gap: 15px;
     }
 
-    #profilePicLoader {
-      display: none;
-      width: 30px;
-      height: 30px;
-      border: 3px solid #f3f3f3;
+    .navbar-profile-img {
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
-      border-top: 3px solid #3498db;
-      animation: spin 1s linear infinite;
-      margin: 10px auto;
+      object-fit: cover;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
     }
+
+    .navbar-profile-img:hover {
+      border-color: rgba(255, 255, 255, 0.8);
+      transform: scale(1.1);
+    }
+
+    .btn-outline-light {
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 25px;
+      padding: 8px 20px;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    .btn-outline-light:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.8);
+      transform: translateY(-2px);
+    }
+
+    .btn-danger {
+      background: var(--secondary-gradient);
+      border: none;
+      border-radius: 25px;
+      padding: 8px 20px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+
+    .main-title {
+      text-align: center;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 40px;
+    }
+
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow-light);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .glass-card:hover::before {
+      left: 100%;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card-title {
+      color: var(--text-light);
+      font-weight: 600;
+      margin-bottom: 25px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.4rem;
+    }
+
+    .profile-header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .profile-pic-container {
+      position: relative;
+      display: inline-block;
+      margin-bottom: 20px;
+    }
+
+    .profile-img {
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 50%;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .profile-img:hover {
+      border-color: rgba(255, 255, 255, 0.8);
+      transform: scale(1.05);
+    }
+
+    .user-info {
+      color: var(--text-light);
+    }
+
+    .user-name {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .user-email {
+      font-size: 1.1rem;
+      opacity: 0.8;
+      margin-bottom: 5px;
+    }
+
+    .member-since {
+      font-size: 1rem;
+      opacity: 0.7;
+    }
+
+    .form-floating {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .form-control {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 15px;
+      color: var(--text-light);
+      padding: 15px 20px;
+      height: auto;
+      font-size: 16px;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.4);
+      box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.15);
+      color: var(--text-light);
+    }
+
+    .form-control:disabled {
+      background: rgba(255, 255, 255, 0.05);
+      opacity: 0.7;
+    }
+
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .form-label {
+      color: rgba(255, 255, 255, 0.9);
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .btn-primary {
+      background: var(--secondary-gradient);
+      border: none;
+      border-radius: 15px;
+      padding: 15px 30px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: var(--text-light);
+      border-radius: 15px;
+      padding: 15px 30px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: var(--text-light);
+      transform: translateY(-2px);
+    }
+
+    .alert {
+      border-radius: 15px;
+      padding: 15px 20px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+      border: none;
+      animation: slideInDown 0.3s ease-out;
+    }
+
+    .alert-danger {
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      color: #fff;
+    }
+
+    .alert-success {
+      background: rgba(76, 175, 80, 0.1);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+      color: #fff;
+    }
+
+    @keyframes slideInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .floating-shapes {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .shape {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .shape:nth-child(1) {
+      width: 100px;
+      height: 100px;
+      top: 10%;
+      left: 5%;
+      animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+      width: 150px;
+      height: 150px;
+      top: 60%;
+      right: 5%;
+      animation-delay: 3s;
+    }
+
+    .shape:nth-child(3) {
+      width: 80px;
+      height: 80px;
+      top: 30%;
+      right: 15%;
+      animation-delay: 6s;
+    }
+
+    .shape:nth-child(4) {
+      width: 120px;
+      height: 120px;
+      bottom: 20%;
+      left: 10%;
+      animation-delay: 1.5s;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+        opacity: 0.5;
+      }
+      50% {
+        transform: translateY(-30px) rotate(180deg);
+        opacity: 0.8;
+      }
+    }
+
+    .upload-area {
+      position: relative;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .upload-preview {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 3px dashed rgba(255, 255, 255, 0.3);
+      object-fit: cover;
+      margin: 0 auto 15px;
+      display: block;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .upload-preview:hover {
+      border-color: rgba(255, 255, 255, 0.6);
+      transform: scale(1.05);
+    }
+
+    .upload-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      cursor: pointer;
+      color: white;
+    }
+
+    .upload-preview:hover + .upload-overlay,
+    .upload-overlay:hover {
+      opacity: 1;
+    }
+
+    .loading-spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+    }
+
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .upload-progress {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .progress {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      background: var(--success-gradient);
+      transition: width 0.3s ease;
+      border-radius: 10px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 15px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-5px);
+    }
+
+    .stat-icon {
+      font-size: 2rem;
+      color: #4facfe;
+      margin-bottom: 10px;
+    }
+
+    .stat-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-light);
+      margin-bottom: 5px;
+    }
+
+    .stat-label {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 768px) {
+      .main-title {
+        font-size: 2rem;
+      }
+      
+      .glass-card {
+        padding: 20px;
+        margin: 15px;
+      }
+      
+      .profile-img {
+        width: 120px;
+        height: 120px;
+      }
+      
+      .user-name {
+        font-size: 1.5rem;
+      }
+      
+      .navbar-profile {
+        gap: 10px;
+      }
+      
+      .navbar-profile-img {
+        width: 35px;
+        height: 35px;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Navbar modificada -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="floating-shapes">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/">Frecomu</a>
+      <a class="navbar-brand" href="/">
+        <i class="fas fa-comments me-2"></i>Frecomu
+      </a>
       <div class="collapse navbar-collapse justify-content-end">
         <div class="navbar-profile">
-          <!-- Nova imagem de perfil na navbar -->
           <img id="navbarProfilePic" src="/static/default_profile.png" class="navbar-profile-img" alt="Foto do perfil">
-          <a href="/profile" class="btn btn-outline-light me-2" id="userName"></a>
+          <a href="/profile" class="btn btn-outline-light me-2" id="userName">Usuário</a>
         </div>
-        <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
+        <button id="logoutBtn" class="btn btn-danger btn-sm">
+          <i class="fas fa-sign-out-alt me-1"></i>Logout
+        </button>
       </div>
     </div>
   </nav>
   
   <div class="container mt-4">
-    <h1 class="text-center mb-4">Configurações do Perfil</h1>
+    <h1 class="main-title">
+      <i class="fas fa-user-cog me-3"></i>Meu Perfil
+    </h1>
     
     <div id="error" class="alert alert-danger d-none"></div>
     <div id="success" class="alert alert-success d-none"></div>
 
-    <!-- Formulário de Alteração de Nome -->
-    <div class="card mb-4">
-      <div class="card-body">
-        <h3 class="card-title mb-3">Alterar Nome de Usuário</h3>
-        <form id="updateUsernameForm">
-          <div class="mb-3">
-            <label for="currentUsername" class="form-label">Nome Atual</label>
-            <input type="text" id="currentUsername" class="form-control" disabled>
-          </div>
-          <div class="mb-3">
-            <label for="newUsername" class="form-label">Novo Nome</label>
-            <input type="text" id="newUsername" class="form-control" required>
-          </div>
-          <button type="submit" class="btn btn-primary">Atualizar Nome</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Formulário de Alteração de Senha -->
-    <div class="card mb-4">
-      <div class="card-body">
-        <h3 class="card-title mb-3">Alterar Senha</h3>
-        <form id="updatePasswordForm">
-          <div class="mb-3">
-            <label for="currentPassword" class="form-label">Senha Atual</label>
-            <input type="password" id="currentPassword" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label for="newPassword" class="form-label">Nova Senha</label>
-            <input type="password" id="newPassword" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label for="confirmPassword" class="form-label">Confirmar Nova Senha</label>
-            <input type="password" id="confirmPassword" class="form-control" required>
-          </div>
-          <button type="submit" class="btn btn-primary">Atualizar Senha</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- Formulário de Alteração da Foto de Perfil -->
-    <div class="card">
-      <div class="card-body">
-        <h3 class="card-title mb-3">Alterar Foto de Perfil</h3>
-        <div class="mb-3 text-center">
+    <!-- Profile Overview -->
+    <div class="glass-card">
+      <div class="profile-header">
+        <div class="profile-pic-container">
           <img id="currentProfilePic" src="/static/default_profile.png" alt="Foto atual" class="profile-img">
         </div>
-        <form id="updateProfilePicForm">
-          <div class="mb-3">
-            <label for="profilePic" class="form-label">Selecionar Nova Foto</label>
-            <input type="file" id="profilePic" class="form-control" accept="image/*">
+        <div class="user-info">
+          <div class="user-name" id="displayName">Nome do Usuário</div>
+          <div class="user-email" id="userEmail">email@exemplo.com</div>
+          <div class="member-since">
+            <i class="fas fa-calendar-alt me-2"></i>Membro desde: <span id="memberSince">01/01/2024</span>
           </div>
-          <div class="mb-3 text-center" id="newProfilePicPreviewContainer" style="display:none;">
-            <img id="newProfilePicPreview" src="" alt="Nova Foto" class="profile-img">
-          </div>
-          <div id="profilePicLoader"></div>
-          <button type="submit" class="btn btn-primary">Atualizar Foto</button>
-        </form>
+        </div>
       </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-comments"></i>
+          </div>
+          <div class="stat-number">0</div>
+          <div class="stat-label">Mensagens Enviadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-number">0</div>
+          <div class="stat-label">Salas Criadas</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <i class="fas fa-heart"></i>
+          </div>
+          <div class="stat-number">0</div>
+          <div class="stat-label">Reações Recebidas</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Update Username -->
+    <div class="glass-card">
+      <h3 class="card-title">
+        <i class="fas fa-edit me-2"></i>Alterar Nome de Usuário
+      </h3>
+      <form id="updateUsernameForm">
+        <div class="form-floating">
+          <label for="currentUsername" class="form-label">Nome Atual</label>
+          <input type="text" id="currentUsername" class="form-control" disabled>
+        </div>
+        <div class="form-floating">
+          <label for="newUsername" class="form-label">Novo Nome</label>
+          <input type="text" id="newUsername" class="form-control" placeholder="Digite seu novo nome" required>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <span class="loading-spinner"></span>
+          <i class="fas fa-save me-2"></i>Atualizar Nome
+        </button>
+      </form>
+    </div>
+
+    <!-- Update Password -->
+    <div class="glass-card">
+      <h3 class="card-title">
+        <i class="fas fa-lock me-2"></i>Alterar Senha
+      </h3>
+      <form id="updatePasswordForm">
+        <div class="form-floating">
+          <label for="currentPassword" class="form-label">Senha Atual</label>
+          <input type="password" id="currentPassword" class="form-control" placeholder="Digite sua senha atual" required>
+        </div>
+        <div class="form-floating">
+          <label for="newPassword" class="form-label">Nova Senha</label>
+          <input type="password" id="newPassword" class="form-control" placeholder="Digite a nova senha" required minlength="6">
+        </div>
+        <div class="form-floating">
+          <label for="confirmPassword" class="form-label">Confirmar Nova Senha</label>
+          <input type="password" id="confirmPassword" class="form-control" placeholder="Confirme a nova senha" required>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          <span class="loading-spinner"></span>
+          <i class="fas fa-key me-2"></i>Atualizar Senha
+        </button>
+      </form>
+    </div>
+
+    <!-- Update Profile Picture -->
+    <div class="glass-card">
+      <h3 class="card-title">
+        <i class="fas fa-camera me-2"></i>Alterar Foto de Perfil
+      </h3>
+      <div class="upload-area">
+        <div class="position-relative d-inline-block">
+          <img id="newProfilePicPreview" src="/static/default_profile.png" class="upload-preview" alt="Nova foto">
+          <div class="upload-overlay">
+            <i class="fas fa-camera" style="font-size: 24px; margin-bottom: 8px;"></i>
+            <small>Clique para alterar</small>
+          </div>
+        </div>
+        <input type="file" id="profilePic" class="d-none" accept="image/*">
+        <div class="upload-progress">
+          <div class="progress">
+            <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+          </div>
+          <small class="text-white-50 mt-2 d-block">Fazendo upload da imagem...</small>
+        </div>
+      </div>
+      <form id="updateProfilePicForm">
+        <button type="submit" class="btn btn-primary" disabled>
+          <span class="loading-spinner"></span>
+          <i class="fas fa-upload me-2"></i>Atualizar Foto
+        </button>
+      </form>
     </div>
 
     <div class="text-center mt-4">
-      <a href="/" class="btn btn-secondary">Voltar para Salas</a>
+      <a href="/" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Voltar para Salas
+      </a>
     </div>
   </div>
   
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    let selectedFile = null;
+
     function showMessage(type, text) {
       const errorDiv = document.getElementById("error");
       const successDiv = document.getElementById("success");
       if (type === "error") {
         errorDiv.classList.remove("d-none");
         successDiv.classList.add("d-none");
-        errorDiv.innerText = text;
+        errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${text}`;
       } else {
         successDiv.classList.remove("d-none");
         errorDiv.classList.add("d-none");
-        successDiv.innerText = text;
+        successDiv.innerHTML = `<i class="fas fa-check-circle me-2"></i>${text}`;
+      }
+      
+      // Auto hide after 5 seconds
+      setTimeout(() => {
+        errorDiv.classList.add("d-none");
+        successDiv.classList.add("d-none");
+      }, 5000);
+    }
+
+    function setLoading(form, loading) {
+      const spinner = form.querySelector('.loading-spinner');
+      const button = form.querySelector('button[type="submit"]');
+      
+      if (loading) {
+        spinner.style.display = 'inline-block';
+        button.disabled = true;
+      } else {
+        spinner.style.display = 'none';
+        button.disabled = false;
       }
     }
 
-    function toggleLoader(show) {
-      document.getElementById("profilePicLoader").style.display = show ? "block" : "none";
+    function updateProgress(percent) {
+      const uploadProgress = document.querySelector('.upload-progress');
+      const progressBar = document.querySelector('.progress-bar');
+      
+      if (percent > 0) {
+        uploadProgress.style.display = 'block';
+        progressBar.style.width = percent + '%';
+      } else {
+        uploadProgress.style.display = 'none';
+      }
     }
 
-    // Atualização do nome de usuário
+    // Profile picture preview
+    document.getElementById('newProfilePicPreview').addEventListener('click', () => {
+      document.getElementById('profilePic').click();
+    });
+    
+    document.querySelector('.upload-overlay').addEventListener('click', () => {
+      document.getElementById('profilePic').click();
+    });
+
+    document.getElementById('profilePic').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          showMessage('error', 'Por favor, selecione apenas arquivos de imagem.');
+          return;
+        }
+        
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          showMessage('error', 'A imagem deve ter no máximo 5MB.');
+          return;
+        }
+
+        selectedFile = file;
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('newProfilePicPreview').src = e.target.result;
+          document.getElementById('newProfilePicPreview').style.border = '3px solid #4facfe';
+          document.querySelector('#updateProfilePicForm button').disabled = false;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Update username
     document.getElementById("updateUsernameForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      const newName = document.getElementById("newUsername").value;
+      setLoading(this, true);
+      
+      const newName = document.getElementById("newUsername").value.trim();
+      
+      if (!newName) {
+        showMessage("error", "Por favor, digite um nome válido.");
+        setLoading(this, false);
+        return;
+      }
+      
       firebase.auth().currentUser.updateProfile({
         displayName: newName
       }).then(() => {
         showMessage("success", "Nome atualizado com sucesso!");
         document.getElementById("currentUsername").value = newName;
         document.getElementById("userName").innerText = newName;
+        document.getElementById("displayName").innerText = newName;
+        document.getElementById("newUsername").value = "";
       }).catch(error => {
-        showMessage("error", error.message);
+        showMessage("error", getErrorMessage(error.code));
+      }).finally(() => {
+        setLoading(this, false);
       });
     });
 
-    // Atualização de senha
+    // Update password
     document.getElementById("updatePasswordForm").addEventListener("submit", function(e) {
       e.preventDefault();
+      setLoading(this, true);
+      
       const currentPassword = document.getElementById("currentPassword").value;
       const newPassword = document.getElementById("newPassword").value;
       const confirmPassword = document.getElementById("confirmPassword").value;
       
       if (newPassword !== confirmPassword) {
         showMessage("error", "As senhas não coincidem!");
+        setLoading(this, false);
+        return;
+      }
+
+      if (newPassword.length < 6) {
+        showMessage("error", "A nova senha deve ter pelo menos 6 caracteres.");
+        setLoading(this, false);
         return;
       }
 
@@ -218,103 +896,160 @@
 
       user.reauthenticateWithCredential(credential)
         .then(() => user.updatePassword(newPassword))
-        .then(() => showMessage("success", "Senha atualizada com sucesso!"))
-        .catch(error => showMessage("error", error.message));
+        .then(() => {
+          showMessage("success", "Senha atualizada com sucesso!");
+          document.getElementById("currentPassword").value = "";
+          document.getElementById("newPassword").value = "";
+          document.getElementById("confirmPassword").value = "";
+        })
+        .catch(error => {
+          showMessage("error", getErrorMessage(error.code));
+        })
+        .finally(() => {
+          setLoading(this, false);
+        });
     });
 
-    // Pré-visualização da nova foto
-    document.getElementById("profilePic").addEventListener("change", function() {
-      const file = this.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-          document.getElementById("newProfilePicPreview").src = e.target.result;
-          document.getElementById("newProfilePicPreviewContainer").style.display = "block";
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    // Atualização da foto de perfil (Versão Corrigida)
+    // Update profile picture
     document.getElementById("updateProfilePicForm").addEventListener("submit", function(e) {
       e.preventDefault();
-      const file = document.getElementById("profilePic").files[0];
       
-      if (!file) {
+      if (!selectedFile) {
         showMessage("error", "Por favor, selecione uma imagem.");
         return;
       }
 
-      toggleLoader(true);
+      setLoading(this, true);
       const user = firebase.auth().currentUser;
       
       if (!user) {
         showMessage("error", "Usuário não autenticado!");
-        toggleLoader(false);
+        setLoading(this, false);
         return;
       }
 
       const storageRef = firebase.storage().ref();
-      const fileRef = storageRef.child(`profile_images/${user.uid}/${Date.now()}_${file.name}`);
+      const fileRef = storageRef.child(`profile_images/${user.uid}/${Date.now()}_${selectedFile.name}`);
+      const uploadTask = fileRef.put(selectedFile);
 
-      // Adiciona timeout para detectar falhas de conexão
-      const uploadTask = fileRef.put(file);
-      const uploadTimeout = setTimeout(() => {
-        uploadTask.cancel();
-        showMessage("error", "Tempo excedido. Verifique sua conexão!");
-        toggleLoader(false);
-      }, 30000); // 30 segundos
-
-      uploadTask
-        .then(snapshot => {
-          clearTimeout(uploadTimeout);
-          return snapshot.ref.getDownloadURL();
-        })
-        .then(url => {
-          console.log("URL obtida:", url);
-          return user.updateProfile({ photoURL: url });
-        })
-        .then(() => {
-          showMessage("success", "Foto atualizada com sucesso!");
-          document.getElementById("currentProfilePic").src = user.photoURL + "?t=" + Date.now();
-          document.getElementById("profilePic").value = "";
-          document.getElementById("newProfilePicPreviewContainer").style.display = "none";
-        })
-        .catch(error => {
-          console.error("Erro completo:", error);
-          let errorMessage = "Erro ao atualizar a foto";
-          
-          if (error.code) {
-            switch (error.code) {
-              case "storage/unauthorized":
-                errorMessage = "Permissão negada pelo servidor";
-                break;
-              case "storage/canceled":
-                errorMessage = "Upload cancelado";
-                break;
-              case "storage/unknown":
-                errorMessage = "Erro desconhecido no servidor";
-                break;
-            }
-          }
-          
-          showMessage("error", errorMessage);
-        })
-        .finally(() => {
-          clearTimeout(uploadTimeout);
-          toggleLoader(false);
-        });
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          updateProgress(progress);
+        }, 
+        (error) => {
+          console.error('Upload error:', error);
+          showMessage("error", "Erro ao fazer upload da imagem: " + error.message);
+          setLoading(this, false);
+          updateProgress(0);
+        }, 
+        () => {
+          uploadTask.snapshot.ref.getDownloadURL().then((url) => {
+            user.updateProfile({ photoURL: url }).then(() => {
+              showMessage("success", "Foto atualizada com sucesso!");
+              document.getElementById("currentProfilePic").src = url + "?t=" + Date.now();
+              document.getElementById("navbarProfilePic").src = url + "?t=" + Date.now();
+              document.getElementById("newProfilePicPreview").src = "/static/default_profile.png";
+              document.getElementById("newProfilePicPreview").style.border = '3px dashed rgba(255, 255, 255, 0.3)';
+              document.getElementById("profilePic").value = "";
+              selectedFile = null;
+              this.querySelector('button').disabled = true;
+            }).catch(error => {
+              showMessage("error", "Erro ao atualizar perfil: " + error.message);
+            }).finally(() => {
+              setLoading(this, false);
+              updateProgress(0);
+            });
+          }).catch(error => {
+            showMessage("error", "Erro ao obter URL da imagem: " + error.message);
+            setLoading(this, false);
+            updateProgress(0);
+          });
+        }
+      );
     });
-
 
     // Logout
     document.getElementById("logoutBtn").addEventListener("click", function(){
+      this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saindo...';
+      this.disabled = true;
+      
       firebase.auth().signOut().then(() => {
         window.location.href = "/login";
       }).catch((error) => {
         console.error("Erro no logout:", error);
+        this.innerHTML = '<i class="fas fa-sign-out-alt me-1"></i>Logout';
+        this.disabled = false;
       });
     });
+
+    function getErrorMessage(errorCode) {
+      const errorMessages = {
+        'auth/wrong-password': 'Senha atual incorreta.',
+        'auth/weak-password': 'A nova senha é muito fraca.',
+        'auth/requires-recent-login': 'Por segurança, faça login novamente antes de alterar a senha.',
+        'auth/network-request-failed': 'Erro de conexão. Verifique sua internet.',
+        'storage/unauthorized': 'Permissão negada para upload.',
+        'storage/canceled': 'Upload cancelado.',
+        'storage/unknown': 'Erro desconhecido no servidor.'
+      };
+      return errorMessages[errorCode] || 'Ocorreu um erro. Tente novamente.';
+    }
+
+    // Add input animations
+    document.querySelectorAll('.form-control').forEach(input => {
+      input.addEventListener('focus', function() {
+        this.parentElement.style.transform = 'scale(1.02)';
+      });
+      
+      input.addEventListener('blur', function() {
+        this.parentElement.style.transform = 'scale(1)';
+      });
+    });
+
+    // Add ripple effect to buttons
+    document.querySelectorAll('.btn').forEach(button => {
+      button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+          position: absolute;
+          width: ${size}px;
+          height: ${size}px;
+          left: ${x}px;
+          top: ${y}px;
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          transform: scale(0);
+          animation: ripple 0.6s linear;
+          pointer-events: none;
+        `;
+        
+        this.style.position = 'relative';
+        this.style.overflow = 'hidden';
+        this.appendChild(ripple);
+        
+        setTimeout(() => {
+          ripple.remove();
+        }, 600);
+      });
+    });
+
+    // CSS for ripple animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes ripple {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
