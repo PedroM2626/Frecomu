@@ -273,4 +273,7 @@ def handle_react_message(data):
     emit("reaction_update", {"message_id": message_id, "reactions": reaction_data}, room=room)
 
 if __name__ == "__main__":
+    # Initialize database if it doesn't exist
+    with app.app_context():
+        db.create_all()
     socketio.run(app, debug=True)
