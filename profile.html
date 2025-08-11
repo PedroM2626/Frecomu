@@ -10,6 +10,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
   <script>
     // Configuração do Firebase (substitua pelos seus dados)
     const firebaseConfig = {
@@ -17,7 +18,7 @@
       authDomain: "frecomu.firebaseapp.com",
       databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
       projectId: "frecomu",
-      storageBucket: "frecomu.firebasestorage.app",
+      storageBucket: "frecomu.appspot.com",
       messagingSenderId: "514151976144",
       appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
       measurementId: "G-7WVRRMF51Y"
@@ -77,7 +78,7 @@
     </div>
 
     <!-- Formulário de Alteração de Senha -->
-    <div class="card">
+    <div class="card mb-4">
       <div class="card-body">
         <h3 class="card-title mb-3">Alterar Senha</h3>
         <form id="updatePasswordForm">
@@ -94,6 +95,28 @@
             <input type="password" id="confirmPassword" class="form-control" required>
           </div>
           <button type="submit" class="btn btn-primary">Atualizar Senha</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Formulário de Alteração de Foto de Perfil -->
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title mb-3">Alterar Foto de Perfil</h3>
+        <div class="text-center mb-3">
+          <div class="position-relative d-inline-block">
+            <img id="profilePreview" src="/static/default_profile.png" class="rounded-circle" width="150" height="150" alt="Foto de Perfil">
+            <div id="profileOverlay" class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 rounded-circle d-flex align-items-center justify-content-center" style="cursor: pointer; opacity: 0; transition: opacity 0.3s;">
+              <span class="text-white">Alterar</span>
+            </div>
+          </div>
+          <input type="file" id="profilePhotoInput" accept="image/*" class="d-none">
+        </div>
+        <div class="progress mb-3 d-none" id="uploadProgress">
+          <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <form id="updatePhotoForm">
+          <button type="submit" class="btn btn-primary w-100" disabled id="uploadPhotoBtn">Atualizar Foto</button>
         </form>
       </div>
     </div>
@@ -134,6 +157,11 @@
         return;
       }
 
+      if (newPassword.length < 6) {
+        showMessage("error", "A senha deve ter pelo menos 6 caracteres!");
+        return;
+      }
+
       const user = firebase.auth().currentUser;
       const credential = firebase.auth.EmailAuthProvider.credential(
         user.email, 
@@ -144,6 +172,139 @@
         .then(() => user.updatePassword(newPassword))
         .then(() => showMessage("success", "Senha atualizada com sucesso!"))
         .catch(error => showMessage("error", error.message));
+    });
+
+    // Gerenciamento de foto de perfil
+    const profilePreview = document.getElementById("profilePreview");
+    const profileOverlay = document.getElementById("profileOverlay");
+    const profilePhotoInput = document.getElementById("profilePhotoInput");
+    const uploadPhotoBtn = document.getElementById("uploadPhotoBtn");
+    const uploadProgress = document.getElementById("uploadProgress");
+    const progressBar = uploadProgress.querySelector(".progress-bar");
+    let selectedFile = null;
+
+    // Carregar foto atual do usuário se existir
+    firebase.auth().onAuthStateChanged(function(user) {
+      if (user && user.photoURL) {
+        profilePreview.src = user.photoURL;
+      }
+    });
+
+    // Mostrar overlay ao passar o mouse sobre a imagem
+    profilePreview.addEventListener("mouseover", function() {
+      profileOverlay.style.opacity = "1";
+    });
+
+    profilePreview.addEventListener("mouseout", function() {
+      profileOverlay.style.opacity = "0";
+    });
+
+    // Abrir seletor de arquivo ao clicar na imagem
+    profileOverlay.addEventListener("click", function() {
+      profilePhotoInput.click();
+    });
+
+    // Pré-visualizar imagem selecionada
+    profilePhotoInput.addEventListener("change", function() {
+      if (this.files && this.files[0]) {
+        const file = this.files[0];
+        
+        // Verificar tipo de arquivo
+        if (!file.type.match('image.*')) {
+          showMessage("error", "Por favor, selecione uma imagem válida.");
+          return;
+        }
+        
+        // Verificar tamanho do arquivo (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          showMessage("error", "A imagem deve ter no máximo 5MB.");
+          return;
+        }
+        
+        selectedFile = file;
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+          profilePreview.src = e.target.result;
+        };
+        
+        reader.readAsDataURL(file);
+        uploadPhotoBtn.disabled = false;
+      }
+    });
+
+    // Upload da foto de perfil
+    document.getElementById("updatePhotoForm").addEventListener("submit", function(e) {
+      e.preventDefault();
+      
+      if (!selectedFile) {
+        showMessage("error", "Por favor, selecione uma imagem.");
+        return;
+      }
+      
+      const user = firebase.auth().currentUser;
+      if (!user) {
+        showMessage("error", "Usuário não autenticado.");
+        return;
+      }
+      
+      // Mostrar barra de progresso
+      uploadProgress.classList.remove("d-none");
+      uploadPhotoBtn.disabled = true;
+      
+      // Sanitizar o nome do arquivo para evitar problemas no caminho do Storage
+      const fileExtension = selectedFile.name.split('.').pop();
+      const fileName = `profile_${user.uid}_${Date.now()}.${fileExtension}`;
+      
+      // Referência ao Storage
+      const storageRef = firebase.storage().ref();
+      const profileImageRef = storageRef.child(`profile_images/${fileName}`);
+      
+      // Upload da imagem
+      const uploadTask = profileImageRef.put(selectedFile);
+      
+      // Monitorar progresso do upload
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          // Progresso
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          progressBar.style.width = progress + '%';
+          progressBar.setAttribute('aria-valuenow', progress);
+        }, 
+        (error) => {
+          // Erro
+          uploadProgress.classList.add("d-none");
+          uploadPhotoBtn.disabled = false;
+          showMessage("error", "Erro ao fazer upload: " + error.message);
+        }, 
+        () => {
+          // Sucesso
+          uploadTask.snapshot.ref.getDownloadURL().then((downloadURL) => {
+            // Atualizar perfil do usuário com a nova URL da imagem
+            user.updateProfile({
+              photoURL: downloadURL
+            }).then(() => {
+              showMessage("success", "Foto de perfil atualizada com sucesso!");
+              uploadProgress.classList.add("d-none");
+              uploadPhotoBtn.disabled = true;
+              
+              // Atualizar imagens de perfil na página
+              const navbarProfileImg = document.querySelector(".navbar-profile-img");
+              if (navbarProfileImg) {
+                navbarProfileImg.src = downloadURL;
+              }
+              
+              // Resetar campo de upload
+              profilePhotoInput.value = "";
+              selectedFile = null;
+            }).catch(error => {
+              showMessage("error", error.message);
+              uploadProgress.classList.add("d-none");
+              uploadPhotoBtn.disabled = false;
+            });
+          });
+        }
+      );
     });
 
     function showMessage(type, text) {
@@ -159,6 +320,15 @@
         errorDiv.classList.add("d-none");
         successDiv.innerText = text;
       }
+      
+      // Auto-esconder mensagem após 5 segundos
+      setTimeout(() => {
+        if (type === "error") {
+          errorDiv.classList.add("d-none");
+        } else {
+          successDiv.classList.add("d-none");
+        }
+      }, 5000);
     }
 
     // Logout

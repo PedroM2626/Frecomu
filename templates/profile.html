@@ -17,7 +17,7 @@
       authDomain: "frecomu.firebaseapp.com",
       databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
       projectId: "frecomu",
-      storageBucket: "frecomu.firebasestorage.app",
+      storageBucket: "frecomu.appspot.com",
       messagingSenderId: "514151976144",
       appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
       measurementId: "G-7WVRRMF51Y"
@@ -52,12 +52,16 @@
               if (elements.userName) {
                 const userNameText = document.getElementById("userNameText");
                 const loadingSpinner = document.getElementById("userLoadingSpinner");
+                const displayName = document.getElementById("displayName");
 
                 if (userNameText) {
                   userNameText.innerText = user.displayName || user.email;
                 }
                 if (loadingSpinner) {
                   loadingSpinner.style.display = 'none';
+                }
+                if (displayName) {
+                  displayName.innerText = user.displayName || user.email;
                 }
               }
               if (elements.currentProfilePic) {
@@ -716,7 +720,7 @@
           <img id="currentProfilePic" src="/static/default_profile.png" alt="Foto atual" class="profile-img">
         </div>
         <div class="user-info">
-          <div class="user-name" id="displayName">Nome do Usuário</div>
+          <div class="user-name" id="displayName">{{ username }}</div>
           <div class="user-email" id="userEmail">email@exemplo.com</div>
           <div class="member-since">
             <i class="fas fa-calendar-alt me-2"></i>Membro desde: <span id="memberSince">01/01/2024</span>
@@ -1025,7 +1029,9 @@
       }
 
       const storageRef = firebase.storage().ref();
-      const fileRef = storageRef.child(`profile_images/${user.uid}/${Date.now()}_${selectedFile.name}`);
+      // Corrigindo o caminho de armazenamento para garantir que seja válido
+      const safeFileName = selectedFile.name.replace(/[^a-zA-Z0-9.]/g, '_');
+      const fileRef = storageRef.child(`profile_images/${user.uid}/${Date.now()}_${safeFileName}`);
       const uploadTask = fileRef.put(selectedFile);
 
       uploadTask.on('state_changed', 

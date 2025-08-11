@@ -39,47 +39,48 @@
               const userNameElement = document.getElementById("userName");
               const navbarProfilePic = document.getElementById("navbarProfilePic");
               const usernameInput = document.getElementById("username");
+              const userNameText = document.getElementById("userNameText");
+              const loadingSpinner = document.getElementById("userLoadingSpinner");
 
               console.log('Usuario logado:', nomeExibicao); // Debug
 
+              // Atualizar nome do usuário imediatamente
+              if (userNameText) {
+                userNameText.innerText = nomeExibicao;
+              }
+              
+              // Esconder spinner de loading
+              if (loadingSpinner) {
+                loadingSpinner.style.display = 'none';
+              }
+              
+              // Mostrar elementos do usuário
               if (userNameElement) {
-                const userNameText = document.getElementById("userNameText");
-                const loadingSpinner = document.getElementById("userLoadingSpinner");
-
-                if (userNameText) {
-                  userNameText.innerText = nomeExibicao;
-                }
-                if (loadingSpinner) {
-                  loadingSpinner.style.display = 'none';
-                }
                 userNameElement.style.opacity = '1';
                 userNameElement.style.transition = 'opacity 0.3s ease';
               }
+              
+              // Atualizar foto do perfil
               if (navbarProfilePic) {
                 navbarProfilePic.src = user.photoURL || "/static/default_profile.png";
                 navbarProfilePic.style.opacity = '1';
                 navbarProfilePic.style.transition = 'opacity 0.3s ease';
               }
+              
+              // Preencher campo de username
               if (usernameInput) {
                 usernameInput.value = nomeExibicao;
               }
-
-              // Adicionar fallback para garantir que o nome apareça
-              setTimeout(() => {
-                const checkUserNameText = document.getElementById("userNameText");
-                const checkLoadingSpinner = document.getElementById("userLoadingSpinner");
-                if (checkUserNameText && (!checkUserNameText.innerText || checkUserNameText.innerText === 'Carregando...')) {
-                  checkUserNameText.innerText = nomeExibicao;
-                }
-                if (checkLoadingSpinner) {
-                  checkLoadingSpinner.style.display = 'none';
-                }
-              }, 1000);
             } else {
+              // Usuário não está logado, redirecionar para login
               window.location.href = "/login";
             }
           } catch (error) {
             console.error('Error in auth state change handler:', error);
+            // Em caso de erro, tentar redirecionar para login
+            setTimeout(() => {
+              window.location.href = "/login";
+            }, 1000);
           }
         });
       } catch (error) {

@@ -44,58 +44,51 @@ source .venv/bin/activate    # Linux/macOS
 # 3. Instale as dependências
 pip install --upgrade pip
 pip install -r requirements.txt
-⚙️ Configuração
-Renomeie .env.example para .env e preencha:
 
-ini
-Copy
-Edit
-SECRET_KEY=<uma string aleatória e segura>
+# 4. Configure as variáveis de ambiente
+Crie um arquivo `.env` na raiz do projeto com:
+```
+SECRET_KEY=sua_chave_secreta_muito_dificil_e_segura_para_producao
 DATABASE_URL=sqlite:///frecomu.db
 UPLOAD_FOLDER=./uploads
-SECRET_KEY: usado pelo Flask para sessões
+FLASK_APP=app.py
+FLASK_ENV=development
+```
 
-DATABASE_URL: string de conexão SQLAlchemy
+# 5. Inicialize o banco de dados
+python init_db.py
 
-UPLOAD_FOLDER: pasta onde vídeos enviados serão guardados
+# 6. Execute o aplicativo
+python app.py
 
-▶️ Como rodar
-bash
-Copy
-Edit
-# 1. (Opcional) inicialize o banco de dados vazio
-flask db upgrade
+# O app ficará disponível em http://127.0.0.1:5000
 
-# 2. Inicie o servidor Flask
-export FLASK_APP=main.py       # Linux/macOS
-set FLASK_APP=main.py          # Windows
-
-flask run
-# ou, para WebSockets:
-python main.py
-O app ficará disponível em http://localhost:5000.
+# 7. Para testar se está funcionando (em outro terminal):
+python test_app.py
 
 📋 Estrutura de Pastas
-csharp
-Copy
-Edit
+
+```
 frecomu/
-├── main.py            # entrypoint: cria app e SocketIO
-├── requirements.txt
-├── .env.example
-├── models.py          # definições de User, Room, Message, Reaction
-├── routes.py          # rotas HTTP (login, registro, páginas)
-├── socket_handlers.py # eventos Socket.IO (join, message, react)
-├── templates/         # HTML Jinja2
-│   ├── base.html
-│   ├── login.html
-│   ├── chat.html
-│   └── ...
-├── static/            # CSS, JS, assets
-│   ├── css/
-│   └── js/
-├── uploads/           # vídeos enviados
-└── migrations/        # arquivos de migração Alembic
+├── app.py             # Aplicação principal Flask + SocketIO
+├── config.py          # Configurações do projeto
+├── init_db.py         # Script para inicializar banco de dados
+├── requirements.txt   # Dependências Python
+├── .env               # Variáveis de ambiente (não commitado)
+├── .env.example       # Exemplo de variáveis de ambiente
+├── test_app.py        # Script de teste da aplicação
+├── templates/         # Templates HTML Jinja2
+│   ├── login.html     # Página de login
+│   ├── register.html  # Página de registro
+│   ├── chat.html      # Interface do chat
+│   ├── profile.html   # Perfil do usuário
+│   └── index.html     # Página principal com salas
+├── static/            # Arquivos estáticos (CSS, JS, imagens)
+├── uploads/           # Pasta para arquivos enviados
+├── config/            # Configurações do Firebase
+│   └── firebase-adminsdk.json
+└── instance/          # Banco de dados SQLite
+```
 📱 Funcionalidades em Detalhe
 Autenticação
 
