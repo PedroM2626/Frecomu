@@ -666,6 +666,11 @@
           setLoading(false);
           showError(getErrorMessage(error.code));
         });
+      } catch (error) {
+        console.error('Unexpected error in form submission:', error);
+        showError('Erro inesperado. Recarregue a página e tente novamente.');
+        setLoading(false);
+      }
     });
 
     function updateUserProfile(user, displayName, photoURL) {
