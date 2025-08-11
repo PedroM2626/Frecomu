@@ -935,6 +935,12 @@
         return;
       }
 
+      if (typeof firebase === 'undefined' || !firebase.auth) {
+        showMessage("error", "Erro: Firebase não carregado. Recarregue a página.");
+        setLoading(this, false);
+        return;
+      }
+
       const user = firebase.auth().currentUser;
       const credential = firebase.auth.EmailAuthProvider.credential(
         user.email, 
