@@ -611,19 +611,26 @@
       hideMessages();
       setLoading(true);
 
-      const displayName = document.getElementById("displayName").value;
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
-      const profilePicFile = document.getElementById("profilePic").files[0];
+      try {
+        const displayName = document.getElementById("displayName").value;
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const profilePicFile = document.getElementById("profilePic").files[0];
 
-      // Validate form
-      if (password.length < 6) {
-        showError('A senha deve ter pelo menos 6 caracteres.');
-        setLoading(false);
-        return;
-      }
+        // Validate form
+        if (password.length < 6) {
+          showError('A senha deve ter pelo menos 6 caracteres.');
+          setLoading(false);
+          return;
+        }
 
-      firebase.auth().createUserWithEmailAndPassword(email, password)
+        if (typeof firebase === 'undefined') {
+          showError('Erro: Firebase não carregado. Recarregue a página.');
+          setLoading(false);
+          return;
+        }
+
+        firebase.auth().createUserWithEmailAndPassword(email, password)
         .then((userCredential) => {
           const user = userCredential.user;
           
