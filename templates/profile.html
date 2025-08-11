@@ -973,8 +973,15 @@
       }
 
       setLoading(this, true);
+
+      if (typeof firebase === 'undefined' || !firebase.auth || !firebase.storage) {
+        showMessage("error", "Erro: Firebase não carregado. Recarregue a página.");
+        setLoading(this, false);
+        return;
+      }
+
       const user = firebase.auth().currentUser;
-      
+
       if (!user) {
         showMessage("error", "Usuário não autenticado!");
         setLoading(this, false);
