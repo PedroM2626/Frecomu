@@ -851,12 +851,22 @@
       const room = "{{ room }}";
       const availableEmojis = ["👍", "❤️", "😂", "😮", "😱", "😎", "😢", "😡", "😭", "🤤", "💀", "🔥", "👏", "🎉"];
       
-      // Set user profile pic
-      firebase.auth().onAuthStateChanged(function(user) {
-        if (user) {
-          $("#navbarProfilePic").attr("src", user.photoURL || "/static/default_profile.png");
+      // Set user profile pic with error handling
+      if (typeof firebase !== 'undefined') {
+        try {
+          firebase.auth().onAuthStateChanged(function(user) {
+            try {
+              if (user) {
+                $("#navbarProfilePic").attr("src", user.photoURL || "/static/default_profile.png");
+              }
+            } catch (error) {
+              console.error('Error in chat auth state change:', error);
+            }
+          });
+        } catch (error) {
+          console.error('Firebase auth error in chat:', error);
         }
-      });
+      }
       
       socket.emit("join", {username: username, room: room});
       
