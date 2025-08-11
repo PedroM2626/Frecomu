@@ -40,15 +40,29 @@
               const navbarProfilePic = document.getElementById("navbarProfilePic");
               const usernameInput = document.getElementById("username");
 
+              console.log('Usuario logado:', nomeExibicao); // Debug
+
               if (userNameElement) {
                 userNameElement.innerText = nomeExibicao;
+                userNameElement.style.opacity = '1';
+                userNameElement.style.transition = 'opacity 0.3s ease';
               }
               if (navbarProfilePic) {
                 navbarProfilePic.src = user.photoURL || "/static/default_profile.png";
+                navbarProfilePic.style.opacity = '1';
+                navbarProfilePic.style.transition = 'opacity 0.3s ease';
               }
               if (usernameInput) {
                 usernameInput.value = nomeExibicao;
               }
+
+              // Adicionar fallback para garantir que o nome apareça
+              setTimeout(() => {
+                const checkUserName = document.getElementById("userName");
+                if (checkUserName && (!checkUserName.innerText || checkUserName.innerText === 'Usuário')) {
+                  checkUserName.innerText = nomeExibicao;
+                }
+              }, 1000);
             } else {
               window.location.href = "/login";
             }
