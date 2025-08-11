@@ -20,21 +20,39 @@
       appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
       measurementId: "G-7WVRRMF51Y"
     };
-    firebase.initializeApp(firebaseConfig);
-    firebase.auth().onAuthStateChanged(function(user) {
-      if (user) {
-        console.log("UID do usuário:", user.uid);
-        const nomeExibicao = user.displayName ? user.displayName : user.email;
-        const userNameElement = document.getElementById("userName");
-        if (userNameElement) {
-          userNameElement.innerText = nomeExibicao;
-        }
-        // Redirect to main page if already logged in
-        window.location.href = "/";
-      } else {
-        console.log("User not logged in");
-      }
+    // Global error handler
+    window.addEventListener('error', function(e) {
+      console.error('Script error caught in login:', e.error || e.message);
+      return true;
     });
+
+    if (typeof firebase !== 'undefined') {
+      try {
+        firebase.initializeApp(firebaseConfig);
+        firebase.auth().onAuthStateChanged(function(user) {
+          try {
+            if (user) {
+              console.log("UID do usuário:", user.uid);
+              const nomeExibicao = user.displayName ? user.displayName : user.email;
+              const userNameElement = document.getElementById("userName");
+              if (userNameElement) {
+                userNameElement.innerText = nomeExibicao;
+              }
+              // Redirect to main page if already logged in
+              window.location.href = "/";
+            } else {
+              console.log("User not logged in");
+            }
+          } catch (error) {
+            console.error('Error in login auth state change:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Firebase initialization error in login:', error);
+      }
+    } else {
+      console.error('Firebase not loaded in login page');
+    }
   </script>
   <style>
     :root {
