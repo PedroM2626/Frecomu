@@ -702,7 +702,10 @@
             <img id="navbarProfilePic" src="/static/default_profile.png" class="navbar-profile-img" alt="Foto do perfil">
             <div class="online-indicator"></div>
           </div>
-          <a href="/profile" class="btn btn-outline-light me-2" id="userName">Usuário</a>
+          <a href="/profile" class="btn btn-outline-light me-2" id="userName">
+            <i class="fas fa-spinner fa-spin me-2" id="userLoadingSpinner"></i>
+            <span id="userNameText">Carregando...</span>
+          </a>
         </div>
         <button id="logoutBtn" class="btn btn-danger btn-sm">
           <i class="fas fa-sign-out-alt me-1"></i>Logout
