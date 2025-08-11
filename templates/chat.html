@@ -867,7 +867,19 @@
           firebase.auth().onAuthStateChanged(function(user) {
             try {
               if (user) {
+                const nomeExibicao = user.displayName ? user.displayName : user.email;
                 $("#navbarProfilePic").attr("src", user.photoURL || "/static/default_profile.png");
+
+                // Atualizar nome do usuário
+                const userNameText = document.getElementById("userNameText");
+                const loadingSpinner = document.getElementById("userLoadingSpinner");
+
+                if (userNameText) {
+                  userNameText.innerText = nomeExibicao;
+                }
+                if (loadingSpinner) {
+                  loadingSpinner.style.display = 'none';
+                }
               }
             } catch (error) {
               console.error('Error in chat auth state change:', error);
