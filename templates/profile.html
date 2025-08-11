@@ -50,7 +50,15 @@
                 elements.currentUsername.value = user.displayName || "";
               }
               if (elements.userName) {
-                elements.userName.innerText = user.displayName || user.email;
+                const userNameText = document.getElementById("userNameText");
+                const loadingSpinner = document.getElementById("userLoadingSpinner");
+
+                if (userNameText) {
+                  userNameText.innerText = user.displayName || user.email;
+                }
+                if (loadingSpinner) {
+                  loadingSpinner.style.display = 'none';
+                }
               }
               if (elements.currentProfilePic) {
                 elements.currentProfilePic.src = user.photoURL || "/static/default_profile.png";
