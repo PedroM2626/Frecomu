@@ -338,10 +338,14 @@
     .form-control:focus {
       background: rgba(255, 255, 255, 0.25);
       border-color: rgba(79, 172, 254, 0.8);
-      box-shadow: 0 0 0 0.3rem rgba(79, 172, 254, 0.25);
+      box-shadow:
+        0 0 0 0.3rem rgba(79, 172, 254, 0.25),
+        0 0 20px rgba(79, 172, 254, 0.3),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
       color: var(--text-light);
       outline: none;
       transform: translateY(-2px);
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     }
 
     .form-control:disabled {
