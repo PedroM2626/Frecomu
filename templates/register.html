@@ -426,7 +426,21 @@
       appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
       measurementId: "G-7WVRRMF51Y"
     };
-    firebase.initializeApp(firebaseConfig);
+    // Global error handler
+    window.addEventListener('error', function(e) {
+      console.error('Script error caught in register:', e.error || e.message);
+      return true;
+    });
+
+    if (typeof firebase !== 'undefined') {
+      try {
+        firebase.initializeApp(firebaseConfig);
+      } catch (error) {
+        console.error('Firebase initialization error in register:', error);
+      }
+    } else {
+      console.error('Firebase not loaded in register page');
+    }
   </script>
 </head>
 <body>
