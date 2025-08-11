@@ -36,3 +36,4 @@ if __name__ == "__main__":
     else:
         print("\n💥 Falha ao inicializar banco de dados")
         exit(1)
+

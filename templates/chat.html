@@ -92,6 +92,8 @@
       object-fit: cover;
       border: 2px solid rgba(255, 255, 255, 0.3);
       transition: all 0.3s ease;
+      position: relative;
+      z-index: 10;
     }
 
     .navbar-profile-img:hover {
@@ -747,8 +749,10 @@
       <div class="collapse navbar-collapse justify-content-end">
         <div class="navbar-profile">
           <div class="position-relative">
-            <img id="navbarProfilePic" src="/static/default_profile.png" class="navbar-profile-img" alt="Foto do perfil">
-            <div class="online-indicator"></div>
+            <a href="/profile" style="position: relative; z-index: 20; display: block;">
+              <img id="navbarProfilePic" src="/static/default_profile.png" class="navbar-profile-img" alt="Foto do perfil">
+              <div class="online-indicator"></div>
+            </a>
           </div>
           <a href="/profile" class="btn btn-outline-light me-2" id="userName">
             <span id="userNameText">{{ username }}</span>
@@ -1304,29 +1308,25 @@
           }
         }
 
-        // Check if Firebase is available before using it
+        // Primeiro faz logout no Firebase (se disponível)
         if (typeof firebase !== 'undefined' && firebase.auth) {
           try {
             firebase.auth().signOut().then(() => {
-              // Redireciona para a página de login após o logout
-              window.location.replace("/login");
+              // Redireciona para a rota de logout do backend com parâmetro no_redirect
+            window.location.href = "/logout?no_redirect=true";
             }).catch((error) => {
-              console.error("Logout error:", error);
-              // Restaura o botão em caso de erro
-              $(this).html('<i class="fas fa-sign-out-alt me-1"></i>Logout');
-              $(this).prop('disabled', false);
-              // Still redirect even if Firebase logout fails
-              setTimeout(() => {
-                window.location.replace("/login");
-              }, 1000);
+              console.error("Erro no logout do Firebase:", error);
+              // Mesmo com erro no Firebase, redireciona para a rota de logout do backend com parâmetro no_redirect
+            window.location.href = "/logout?no_redirect=true";
             });
           } catch (error) {
-            console.error("Firebase auth error during logout:", error);
-            window.location.replace("/login");
+            console.error("Erro ao acessar Firebase auth:", error);
+            // Em caso de erro, redireciona para a rota de logout do backend com parâmetro no_redirect
+            window.location.href = "/logout?no_redirect=true";
           }
         } else {
-          console.warn("Firebase not available, redirecting to login");
-          window.location.replace("/login");
+          console.warn("Firebase não disponível, redirecionando para logout do backend");
+          window.location.href = "/logout?no_redirect=true";
         }
       });
       

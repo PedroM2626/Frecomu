@@ -76,9 +76,12 @@ def uploaded_file(filename):
 # Rotas de autenticação (login e register) devem existir
 @app.route("/login")
 def login():
-    if session.get("username"):
-        return redirect(url_for("index"))
-    return render_template("login.html")
+    # Verifica se o parâmetro no_redirect está presente na URL
+    no_redirect = request.args.get('no_redirect', 'false').lower() == 'true'
+    
+    # Renderiza a página de login sem redirecionamento automático
+    # Isso evita loops de redirecionamento entre login e index
+    return render_template("login.html", no_redirect=no_redirect)
 
 @app.route("/register")
 def register():
@@ -195,6 +198,14 @@ def profile():
     if not username:
         return redirect(url_for("index"))
     return render_template("profile.html", username=username)
+
+# Rota para logout
+@app.route('/logout')
+def logout():
+    # Limpar toda a sessão
+    session.clear()
+    # Redirecionar para a página de login com parâmetro no_redirect
+    return redirect(url_for('login', no_redirect="true"))
 
 # Rota para editar o nome da sala (apenas para o owner)
 @app.route("/edit_room", methods=["POST"])

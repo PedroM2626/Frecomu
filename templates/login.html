@@ -38,8 +38,9 @@
               if (userNameElement) {
                 userNameElement.innerText = nomeExibicao;
               }
-              // Redirect to main page if already logged in
-              window.location.href = "/";
+              // Removemos o redirecionamento automático para evitar loops
+              console.log('Usuário já autenticado:', user.displayName || user.email);
+              // Não redirecionamos automaticamente, deixamos o usuário clicar no botão de login
             } else {
               console.log("User not logged in");
             }
