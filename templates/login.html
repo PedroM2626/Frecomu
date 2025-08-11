@@ -503,22 +503,34 @@
       hideError();
       setLoading(true);
 
-      const email = document.getElementById("email").value;
-      const password = document.getElementById("password").value;
+      try {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
 
-      firebase.auth().signInWithEmailAndPassword(email, password)
-        .then((userCredential) => {
-          // Success animation
-          loginBtn.style.background = "var(--success-gradient)";
-          btnText.textContent = "Sucesso!";
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 1000);
-        })
-        .catch((error) => {
+        if (typeof firebase === 'undefined') {
+          showError('Erro: Firebase não carregado. Recarregue a página.');
           setLoading(false);
-          showError(getErrorMessage(error.code));
-        });
+          return;
+        }
+
+        firebase.auth().signInWithEmailAndPassword(email, password)
+          .then((userCredential) => {
+            // Success animation
+            loginBtn.style.background = "var(--success-gradient)";
+            btnText.textContent = "Sucesso!";
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 1000);
+          })
+          .catch((error) => {
+            setLoading(false);
+            showError(getErrorMessage(error.code));
+          });
+      } catch (error) {
+        console.error('Unexpected error in login:', error);
+        showError('Erro inesperado. Recarregue a página e tente novamente.');
+        setLoading(false);
+      }
     });
 
     document.getElementById("resetPassword").addEventListener("click", function(){
