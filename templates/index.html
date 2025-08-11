@@ -6,163 +6,894 @@
   <link rel="icon" type="image/png" href="/frecomu/assets/FrecomuIcon.webp">
   <title>Frecomu - Salas</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js" crossorigin="anonymous"></script>
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
-      authDomain: "frecomu.firebaseapp.com",
-      databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
-      projectId: "frecomu",
-      storageBucket: "frecomu.firebasestorage.app",
-      messagingSenderId: "514151976144",
-      appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
-      measurementId: "G-7WVRRMF51Y"
-    };
-    firebase.initializeApp(firebaseConfig);
-    firebase.auth().onAuthStateChanged(function(user) {
-      if (user) {
-        // Preenche o campo oculto "username" com o displayName (ou email, se não definido)
-        const nomeExibicao = user.displayName ? user.displayName : user.email;
-        document.getElementById("userName").innerText = nomeExibicao;
-        let usernameInput = document.getElementById("username");
-        if (usernameInput) {
-          usernameInput.value = nomeExibicao;
-        }
-      } else {
-        window.location.href = "/login";
-      }
+    // Global error handler for script errors
+    window.addEventListener('error', function(e) {
+      console.error('Script error caught:', e.error || e.message);
+      return true; // Prevent default error handling
     });
+
+    // Check if Firebase loaded successfully
+    if (typeof firebase !== 'undefined') {
+      try {
+        const firebaseConfig = {
+          apiKey: "AIzaSyBpjHRgxIwU4oNgHpjvf3GltSxsyCGA8-k",
+          authDomain: "frecomu.firebaseapp.com",
+          databaseURL: "https://frecomu-default-rtdb.firebaseio.com",
+          projectId: "frecomu",
+          storageBucket: "frecomu.firebasestorage.app",
+          messagingSenderId: "514151976144",
+          appId: "1:514151976144:web:0a0cd044611a7ce395e2d5",
+          measurementId: "G-7WVRRMF51Y"
+        };
+        firebase.initializeApp(firebaseConfig);
+
+        firebase.auth().onAuthStateChanged(function(user) {
+          try {
+            if (user) {
+              const nomeExibicao = user.displayName ? user.displayName : user.email;
+              const userNameElement = document.getElementById("userName");
+              const navbarProfilePic = document.getElementById("navbarProfilePic");
+              const usernameInput = document.getElementById("username");
+
+              console.log('Usuario logado:', nomeExibicao); // Debug
+
+              if (userNameElement) {
+                const userNameText = document.getElementById("userNameText");
+                const loadingSpinner = document.getElementById("userLoadingSpinner");
+
+                if (userNameText) {
+                  userNameText.innerText = nomeExibicao;
+                }
+                if (loadingSpinner) {
+                  loadingSpinner.style.display = 'none';
+                }
+                userNameElement.style.opacity = '1';
+                userNameElement.style.transition = 'opacity 0.3s ease';
+              }
+              if (navbarProfilePic) {
+                navbarProfilePic.src = user.photoURL || "/static/default_profile.png";
+                navbarProfilePic.style.opacity = '1';
+                navbarProfilePic.style.transition = 'opacity 0.3s ease';
+              }
+              if (usernameInput) {
+                usernameInput.value = nomeExibicao;
+              }
+
+              // Adicionar fallback para garantir que o nome apareça
+              setTimeout(() => {
+                const checkUserNameText = document.getElementById("userNameText");
+                const checkLoadingSpinner = document.getElementById("userLoadingSpinner");
+                if (checkUserNameText && (!checkUserNameText.innerText || checkUserNameText.innerText === 'Carregando...')) {
+                  checkUserNameText.innerText = nomeExibicao;
+                }
+                if (checkLoadingSpinner) {
+                  checkLoadingSpinner.style.display = 'none';
+                }
+              }, 1000);
+            } else {
+              window.location.href = "/login";
+            }
+          } catch (error) {
+            console.error('Error in auth state change handler:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
+        // Fallback: redirect to login if Firebase fails
+        setTimeout(() => {
+          if (!document.getElementById("userName") || !document.getElementById("userName").innerText) {
+            window.location.href = "/login";
+          }
+        }, 2000);
+      }
+    } else {
+      console.error('Firebase not loaded');
+      // Fallback behavior when Firebase is not available
+      setTimeout(() => {
+        window.location.href = "/login";
+      }, 2000);
+    }
   </script>
   <style>
-    body { background: #f8f9fa; }
-    .container { max-width: 600px; margin-top: 50px; }
+    :root {
+      --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      --warning-gradient: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+      --glass-bg: rgba(255, 255, 255, 0.1);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --text-dark: #2c3e50;
+      --text-light: #ffffff;
+      --shadow-light: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      --shadow-hover: 0 15px 35px 0 rgba(31, 38, 135, 0.4);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--primary-gradient);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(120, 119, 198, 0.2) 0%, transparent 50%);
+      animation: backgroundFloat 8s ease-in-out infinite alternate;
+    }
+
+    @keyframes backgroundFloat {
+      0% {
+        transform: translateY(0px) scale(1);
+      }
+      100% {
+        transform: translateY(-15px) scale(1.03);
+      }
+    }
+
+    .navbar {
+      background: var(--glass-bg) !important;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 15px 0;
+      position: relative;
+      z-index: 1000;
+    }
+
+    .navbar-brand {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
 
     .navbar-profile {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 15px;
     }
+
     .navbar-profile-img {
-      width: 30px;
-      height: 30px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       object-fit: cover;
-      border: 2px solid #fff;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      transition: all 0.3s ease;
+      opacity: 0.8;
+    }
+
+    .navbar-profile-img:hover {
+      border-color: rgba(255, 255, 255, 0.8);
+      transform: scale(1.1);
+      opacity: 1;
+    }
+
+    .btn-outline-light {
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 25px;
+      padding: 10px 24px;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      text-transform: none;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      min-width: 120px;
+      text-align: center;
+    }
+
+    .btn-outline-light:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.8);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-danger {
+      background: var(--secondary-gradient);
+      border: none;
+      border-radius: 25px;
+      padding: 8px 20px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-danger:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+
+    .main-title {
+      text-align: center;
+      font-size: 3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 40px;
+      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow-light);
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .glass-card:hover::before {
+      left: 100%;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-5px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .card-title {
+      color: var(--text-light);
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-control {
+      background: rgba(255, 255, 255, 0.15);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 15px;
+      color: var(--text-light);
+      padding: 18px 20px;
+      font-size: 16px;
+      min-height: 55px;
+      line-height: 1.4;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s ease;
+      margin-bottom: 15px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+    }
+
+    .form-control:focus {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(79, 172, 254, 0.8);
+      box-shadow:
+        0 0 0 0.3rem rgba(79, 172, 254, 0.25),
+        0 0 20px rgba(79, 172, 254, 0.3),
+        inset 0 0 20px rgba(255, 255, 255, 0.1);
+      color: var(--text-light);
+      outline: none;
+      transform: translateY(-2px);
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+
+    .form-label {
+      color: rgba(255, 255, 255, 0.95);
+      font-weight: 600;
+      margin-bottom: 12px;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+    }
+
+    .form-check-label {
+      color: rgba(255, 255, 255, 0.9);
+      margin-left: 10px;
+    }
+
+    .form-check-input:checked {
+      background-color: #4facfe;
+      border-color: #4facfe;
+    }
+
+    .btn-primary {
+      background: var(--secondary-gradient);
+      border: none;
+      border-radius: 15px;
+      padding: 15px 30px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-primary:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: var(--text-light);
+      border-radius: 12px;
+      padding: 8px 16px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: var(--text-light);
+      transform: translateY(-2px);
+    }
+
+    .list-group {
+      background: transparent;
+    }
+
+    .list-group-item {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--text-light);
+      margin-bottom: 10px;
+      border-radius: 15px;
+      padding: 20px;
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .list-group-item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s;
+    }
+
+    .list-group-item:hover::before {
+      left: 100%;
+    }
+
+    .list-group-item:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .room-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .room-name {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .badge {
+      padding: 8px 15px;
+      border-radius: 20px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .bg-success {
+      background: var(--success-gradient) !important;
+    }
+
+    .bg-danger {
+      background: var(--secondary-gradient) !important;
+    }
+
+    .room-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.875rem;
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary {
+      border-color: rgba(79, 172, 254, 0.5);
+      color: #4facfe;
+    }
+
+    .btn-outline-primary:hover {
+      background: #4facfe;
+      border-color: #4facfe;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .btn-outline-danger {
+      border-color: rgba(245, 87, 108, 0.5);
+      color: #f5576c;
+    }
+
+    .btn-outline-danger:hover {
+      background: #f5576c;
+      border-color: #f5576c;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    .alert {
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      color: #fff;
+      border-radius: 15px;
+      padding: 15px;
+      margin-bottom: 20px;
+      backdrop-filter: blur(10px);
+      animation: slideInDown 0.3s ease-out;
+    }
+
+    @keyframes slideInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .floating-shapes {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .shape {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      animation: float 8s ease-in-out infinite;
+    }
+
+    .shape:nth-child(1) {
+      width: 100px;
+      height: 100px;
+      top: 10%;
+      left: 5%;
+      animation-delay: 0s;
+    }
+
+    .shape:nth-child(2) {
+      width: 150px;
+      height: 150px;
+      top: 60%;
+      right: 5%;
+      animation-delay: 3s;
+    }
+
+    .shape:nth-child(3) {
+      width: 80px;
+      height: 80px;
+      top: 30%;
+      right: 15%;
+      animation-delay: 6s;
+    }
+
+    .shape:nth-child(4) {
+      width: 120px;
+      height: 120px;
+      bottom: 20%;
+      left: 10%;
+      animation-delay: 1.5s;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px) rotate(0deg);
+        opacity: 0.5;
+      }
+      50% {
+        transform: translateY(-30px) rotate(180deg);
+        opacity: 0.8;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .main-title {
+        font-size: 2rem;
+      }
+      
+      .glass-card {
+        padding: 20px;
+        margin: 15px;
+      }
+      
+      .list-group-item {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+      }
+      
+      .room-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      
+      .navbar-profile {
+        gap: 10px;
+      }
+      
+      .navbar-profile-img {
+        width: 35px;
+        height: 35px;
+      }
+    }
+
+    .password-input-group {
+      position: relative;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .loading-spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+      margin-right: 10px;
+    }
+
+    #userLoadingSpinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      margin-right: 8px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
-  <!-- Navbar modificada -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="floating-shapes">
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+    <div class="shape"></div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/">Frecomu</a>
+      <a class="navbar-brand" href="/">
+        <i class="fas fa-comments me-2"></i>Frecomu
+      </a>
       <div class="collapse navbar-collapse justify-content-end">
         <div class="navbar-profile">
-          <!-- Nova imagem de perfil na navbar -->
           <img id="navbarProfilePic" src="/static/default_profile.png" class="navbar-profile-img" alt="Foto do perfil">
-          <a href="/profile" class="btn btn-outline-light me-2" id="userName"></a>
+          <a href="/profile" class="btn btn-outline-light me-2" id="userName">
+            <i class="fas fa-spinner fa-spin me-2" id="userLoadingSpinner"></i>
+            <span id="userNameText">Carregando...</span>
+          </a>
         </div>
-        <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
+        <button id="logoutBtn" class="btn btn-danger btn-sm">
+          <i class="fas fa-sign-out-alt me-1"></i>Logout
+        </button>
       </div>
     </div>
   </nav>
 
   <div class="container mt-4">
-    <h1 class="text-center mb-4">Frecomu</h1>
+    <h1 class="main-title">
+      <i class="fas fa-users me-3"></i>Salas de Chat
+    </h1>
     
     {% if error %}
-      <div class="alert alert-danger">{{ error }}</div>
+      <div class="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+      </div>
     {% endif %}
 
     {% if room %}
       <!-- Formulário para entrar na sala -->
-      <h3>Entrar na Sala: {{ room }}</h3>
-      <form method="POST">
-        <input type="hidden" name="username" id="username">
-        <div class="mb-3">
-          <label for="password" class="form-label">Senha (se for sala privada)</label>
-          <input type="text" name="password" id="password" class="form-control" placeholder="Digite a senha">
+      <div class="glass-card">
+        <h3 class="card-title">
+          <i class="fas fa-door-open me-2"></i>Entrar na Sala: {{ room }}
+        </h3>
+        <form method="POST" id="joinRoomForm">
+          <input type="hidden" name="username" id="username">
+          <div class="password-input-group">
+            <label for="password" class="form-label">
+              <i class="fas fa-lock me-2"></i>Senha (se for sala privada)
+            </label>
+            <input type="password" name="password" id="password" class="form-control" placeholder="Digite a senha">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <span class="loading-spinner"></span>
+            <i class="fas fa-sign-in-alt me-2"></i>Entrar na Sala
+          </button>
+        </form>
+        <div class="text-center mt-3">
+          <a href="{{ url_for('index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar
+          </a>
         </div>
-        <button type="submit" class="btn btn-primary w-100">Entrar na Sala</button>
-      </form>
-      <hr>
-      <a href="{{ url_for('index') }}" class="btn btn-secondary w-100">Voltar</a>
+      </div>
     {% else %}
       <!-- Formulário para criar sala -->
-      <h3>Criar Sala</h3>
-      <form method="POST">
-        <div class="mb-3">
-          <label for="room_name" class="form-label">Nome da Sala</label>
-          <input type="text" name="room_name" id="room_name" class="form-control" placeholder="Ex: geral" required>
-        </div>
-        <div class="form-check mb-3">
-          <input type="checkbox" name="is_private" id="is_private" class="form-check-input">
-          <label for="is_private" class="form-check-label">Sala Privada</label>
-        </div>
-        <div class="mb-3">
-          <label for="password" class="form-label">Senha (para sala privada)</label>
-          <input type="text" name="password" id="password" class="form-control" placeholder="Digite uma senha se a sala for privada">
-        </div>
-        <button type="submit" class="btn btn-primary w-100">Criar Sala</button>
-      </form>
-      
-      <hr>
+      <div class="glass-card">
+        <h3 class="card-title">
+          <i class="fas fa-plus-circle me-2"></i>Criar Nova Sala
+        </h3>
+        <form method="POST" id="createRoomForm">
+          <div class="mb-3">
+            <label for="room_name" class="form-label">
+              <i class="fas fa-tag me-2"></i>Nome da Sala
+            </label>
+            <input type="text" name="room_name" id="room_name" class="form-control" placeholder="Ex: Sala dos Amigos" required>
+          </div>
+          <div class="form-check mb-3">
+            <input type="checkbox" name="is_private" id="is_private" class="form-check-input">
+            <label for="is_private" class="form-check-label">
+              <i class="fas fa-shield-alt me-2"></i>Sala Privada
+            </label>
+          </div>
+          <div class="mb-3" id="passwordField" style="display: none;">
+            <label for="create_password" class="form-label">
+              <i class="fas fa-key me-2"></i>Senha da Sala
+            </label>
+            <input type="password" name="password" id="create_password" class="form-control" placeholder="Digite uma senha para a sala">
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <span class="loading-spinner"></span>
+            <i class="fas fa-plus me-2"></i>Criar Sala
+          </button>
+        </form>
+      </div>
       
       <!-- Formulário de Pesquisa -->
-      <h3>Pesquisar Sala</h3>
-      <form method="GET">
-        <div class="mb-3">
-          <input type="text" name="search" id="search" class="form-control" placeholder="Pesquisar sala pelo nome..." value="{{ search_query or '' }}">
-        </div>
-        <button type="submit" class="btn btn-secondary w-100">Pesquisar</button>
-      </form>
-      
-      <hr>
+      <div class="glass-card">
+        <h3 class="card-title">
+          <i class="fas fa-search me-2"></i>Pesquisar Sala
+        </h3>
+        <form method="GET" id="searchForm">
+          <div class="input-group">
+            <input type="text" name="search" id="search" class="form-control" placeholder="Pesquisar sala pelo nome..." value="{{ search_query or '' }}">
+            <button type="submit" class="btn btn-secondary">
+              <i class="fas fa-search"></i>
+            </button>
+          </div>
+        </form>
+      </div>
       
       <!-- Lista de Salas -->
-      <h3>Salas Disponíveis</h3>
-      <ul class="list-group">
-        {% for room, info in rooms.items() %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            {{ room }}
-            {% if info.private %}
-              <span class="badge bg-danger">Privada</span>
-            {% else %}
-              <span class="badge bg-success">Pública</span>
-            {% endif %}
-            <div>
-              <a href="{{ url_for('index', room=room) }}" class="btn btn-sm btn-secondary">Entrar</a>
-              {% if info.owner == current_user %}
-                <button class="btn btn-sm btn-outline-primary edit-room-btn" data-room="{{ room }}">Editar Sala</button>
-                <button class="btn btn-sm btn-outline-danger delete-room-btn" data-room="{{ room }}">Excluir Sala</button>
-              {% endif %}
+      <div class="glass-card">
+        <h3 class="card-title">
+          <i class="fas fa-list me-2"></i>Salas Disponíveis
+        </h3>
+        <div class="list-group">
+          {% for room_name, info in rooms.items() %}
+            <div class="list-group-item">
+              <div class="room-info">
+                <div class="room-name">
+                  <i class="fas fa-comments me-2"></i>{{ room_name }}
+                </div>
+                {% if info.private %}
+                  <span class="badge bg-danger">
+                    <i class="fas fa-lock me-1"></i>Privada
+                  </span>
+                {% else %}
+                  <span class="badge bg-success">
+                    <i class="fas fa-globe me-1"></i>Pública
+                  </span>
+                {% endif %}
+              </div>
+              <div class="room-actions">
+                <a href="{{ url_for('index', room=room_name) }}" class="btn btn-sm btn-secondary">
+                  <i class="fas fa-sign-in-alt me-1"></i>Entrar
+                </a>
+                {% if info.owner == current_user %}
+                  <button class="btn btn-sm btn-outline-primary edit-room-btn" data-room="{{ room_name }}">
+                    <i class="fas fa-edit me-1"></i>Editar
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger delete-room-btn" data-room="{{ room_name }}">
+                    <i class="fas fa-trash me-1"></i>Excluir
+                  </button>
+                {% endif %}
+              </div>
             </div>
-          </li>
-        {% else %}
-          <li class="list-group-item">Nenhuma sala disponível.</li>
-        {% endfor %}
-      </ul>
+          {% else %}
+            <div class="empty-state">
+              <i class="fas fa-comments"></i>
+              <h4>Nenhuma sala disponível</h4>
+              <p>Seja o primeiro a criar uma sala!</p>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
     {% endif %}
   </div>
   
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    // Show/hide password field for private rooms
+    document.getElementById("is_private").addEventListener("change", function() {
+      const passwordField = document.getElementById("passwordField");
+      const passwordInput = document.getElementById("create_password");
+      
+      if (this.checked) {
+        passwordField.style.display = "block";
+        passwordInput.required = true;
+        passwordField.style.animation = "slideInDown 0.3s ease-out";
+      } else {
+        passwordField.style.display = "none";
+        passwordInput.required = false;
+        passwordInput.value = "";
+      }
+    });
+
+    // Form loading states
+    function setFormLoading(form, loading) {
+      const spinner = form.querySelector('.loading-spinner');
+      const button = form.querySelector('button[type="submit"]');
+      
+      if (loading) {
+        spinner.style.display = 'inline-block';
+        button.disabled = true;
+      } else {
+        spinner.style.display = 'none';
+        button.disabled = false;
+      }
+    }
+
+    // Add loading to forms
+    document.getElementById("createRoomForm")?.addEventListener("submit", function() {
+      setFormLoading(this, true);
+    });
+
+    document.getElementById("joinRoomForm")?.addEventListener("submit", function() {
+      setFormLoading(this, true);
+    });
+
+    // Logout functionality
     document.getElementById("logoutBtn").addEventListener("click", function(){
-      firebase.auth().signOut().then(() => {
+      this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saindo...';
+      this.disabled = true;
+
+      // Check if Firebase is available before using it
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        try {
+          firebase.auth().signOut().then(() => {
+            window.location.href = "/login";
+          }).catch((error) => {
+            console.error("Erro no logout:", error);
+            this.innerHTML = '<i class="fas fa-sign-out-alt me-1"></i>Logout';
+            this.disabled = false;
+            // Still redirect after a delay even if Firebase logout fails
+            setTimeout(() => {
+              window.location.href = "/login";
+            }, 1000);
+          });
+        } catch (error) {
+          console.error("Firebase auth error during logout:", error);
+          window.location.href = "/login";
+        }
+      } else {
+        console.warn("Firebase not available, redirecting to login");
         window.location.href = "/login";
-      }).catch((error) => {
-        console.error("Erro no logout:", error);
-      });
+      }
     });
     
-    // Botões de editar sala
+    // Edit room functionality
     document.querySelectorAll(".edit-room-btn").forEach(button => {
       button.addEventListener("click", function(){
         const oldRoom = this.getAttribute("data-room");
         const newRoom = prompt("Digite o novo nome para a sala:", oldRoom);
+        
         if (newRoom && newRoom.trim() !== "" && newRoom !== oldRoom) {
+          this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Editando...';
+          this.disabled = true;
+          
           fetch("/edit_room", {
             method: "POST",
             headers: {"Content-Type": "application/x-www-form-urlencoded"},
@@ -171,22 +902,33 @@
           .then(response => response.json())
           .then(data => {
             if (data.error) {
-              alert(data.error);
+              alert("❌ " + data.error);
             } else {
-              alert("Sala alterada para: " + data.new_room);
+              alert("✅ Sala alterada para: " + data.new_room);
               window.location.reload();
             }
           })
-          .catch(error => console.error("Erro ao editar sala:", error));
+          .catch(error => {
+            console.error("Erro ao editar sala:", error);
+            alert("❌ Erro ao editar sala");
+          })
+          .finally(() => {
+            this.innerHTML = '<i class="fas fa-edit me-1"></i>Editar';
+            this.disabled = false;
+          });
         }
       });
     });
     
-    // Botões de excluir sala
+    // Delete room functionality
     document.querySelectorAll(".delete-room-btn").forEach(button => {
       button.addEventListener("click", function(){
         const room = this.getAttribute("data-room");
-        if (confirm("Tem certeza que deseja excluir a sala " + room + "?")) {
+        
+        if (confirm("⚠️ Tem certeza que deseja excluir a sala '" + room + "'?\n\nEsta ação não pode ser desfeita!")) {
+          this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Excluindo...';
+          this.disabled = true;
+          
           fetch("/delete_room", {
             method: "POST",
             headers: {"Content-Type": "application/x-www-form-urlencoded"},
@@ -195,16 +937,78 @@
           .then(response => response.json())
           .then(data => {
             if (data.error) {
-              alert(data.error);
+              alert("❌ " + data.error);
             } else {
-              alert("Sala " + data.deleted_room + " excluída.");
+              alert("✅ Sala '" + data.deleted_room + "' excluída com sucesso!");
               window.location.reload();
             }
           })
-          .catch(error => console.error("Erro ao excluir sala:", error));
+          .catch(error => {
+            console.error("Erro ao excluir sala:", error);
+            alert("❌ Erro ao excluir sala");
+          })
+          .finally(() => {
+            this.innerHTML = '<i class="fas fa-trash me-1"></i>Excluir';
+            this.disabled = false;
+          });
         }
       });
     });
+
+    // Input animations
+    document.querySelectorAll('.form-control').forEach(input => {
+      input.addEventListener('focus', function() {
+        this.style.transform = 'scale(1.02)';
+      });
+      
+      input.addEventListener('blur', function() {
+        this.style.transform = 'scale(1)';
+      });
+    });
+
+    // Add ripple effect to buttons
+    document.querySelectorAll('.btn').forEach(button => {
+      button.addEventListener('click', function(e) {
+        const ripple = document.createElement('span');
+        const rect = this.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height);
+        const x = e.clientX - rect.left - size / 2;
+        const y = e.clientY - rect.top - size / 2;
+        
+        ripple.style.cssText = `
+          position: absolute;
+          width: ${size}px;
+          height: ${size}px;
+          left: ${x}px;
+          top: ${y}px;
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          transform: scale(0);
+          animation: ripple 0.6s linear;
+          pointer-events: none;
+        `;
+        
+        this.style.position = 'relative';
+        this.style.overflow = 'hidden';
+        this.appendChild(ripple);
+        
+        setTimeout(() => {
+          ripple.remove();
+        }, 600);
+      });
+    });
+
+    // CSS for ripple animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes ripple {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
   </script>
 </body>
 </html>
