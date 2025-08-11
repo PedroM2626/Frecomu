@@ -24,18 +24,59 @@
     };
     firebase.initializeApp(firebaseConfig);
     
-    firebase.auth().onAuthStateChanged(function(user) {
-      if (!user) {
-        window.location.href = "/login";
-      } else {
-        document.getElementById("currentUsername").value = user.displayName || "";
-        document.getElementById("userName").innerText = user.displayName || user.email;
-        document.getElementById("currentProfilePic").src = user.photoURL || "/static/default_profile.png";
-        document.getElementById("navbarProfilePic").src = user.photoURL || "/static/default_profile.png";
-        document.getElementById("userEmail").textContent = user.email;
-        document.getElementById("memberSince").textContent = new Date(user.metadata.creationTime).toLocaleDateString('pt-BR');
-      }
+    // Global error handler
+    window.addEventListener('error', function(e) {
+      console.error('Script error caught in profile:', e.error || e.message);
+      return true;
     });
+
+    if (typeof firebase !== 'undefined') {
+      try {
+        firebase.auth().onAuthStateChanged(function(user) {
+          try {
+            if (!user) {
+              window.location.href = "/login";
+            } else {
+              const elements = {
+                currentUsername: document.getElementById("currentUsername"),
+                userName: document.getElementById("userName"),
+                currentProfilePic: document.getElementById("currentProfilePic"),
+                navbarProfilePic: document.getElementById("navbarProfilePic"),
+                userEmail: document.getElementById("userEmail"),
+                memberSince: document.getElementById("memberSince")
+              };
+
+              if (elements.currentUsername) {
+                elements.currentUsername.value = user.displayName || "";
+              }
+              if (elements.userName) {
+                elements.userName.innerText = user.displayName || user.email;
+              }
+              if (elements.currentProfilePic) {
+                elements.currentProfilePic.src = user.photoURL || "/static/default_profile.png";
+              }
+              if (elements.navbarProfilePic) {
+                elements.navbarProfilePic.src = user.photoURL || "/static/default_profile.png";
+              }
+              if (elements.userEmail) {
+                elements.userEmail.textContent = user.email;
+              }
+              if (elements.memberSince && user.metadata && user.metadata.creationTime) {
+                elements.memberSince.textContent = new Date(user.metadata.creationTime).toLocaleDateString('pt-BR');
+              }
+            }
+          } catch (error) {
+            console.error('Error in profile auth state change:', error);
+          }
+        });
+      } catch (error) {
+        console.error('Firebase initialization error in profile:', error);
+        window.location.href = "/login";
+      }
+    } else {
+      console.error('Firebase not loaded in profile page');
+      window.location.href = "/login";
+    }
   </script>
   <style>
     :root {
