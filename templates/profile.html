@@ -892,7 +892,13 @@
         setLoading(this, false);
         return;
       }
-      
+
+      if (typeof firebase === 'undefined' || !firebase.auth) {
+        showMessage("error", "Erro: Firebase não carregado. Recarregue a página.");
+        setLoading(this, false);
+        return;
+      }
+
       firebase.auth().currentUser.updateProfile({
         displayName: newName
       }).then(() => {
