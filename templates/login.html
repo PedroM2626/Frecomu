@@ -25,9 +25,14 @@
       if (user) {
         console.log("UID do usuário:", user.uid);
         const nomeExibicao = user.displayName ? user.displayName : user.email;
-        document.getElementById("userName").innerText = nomeExibicao;
+        const userNameElement = document.getElementById("userName");
+        if (userNameElement) {
+          userNameElement.innerText = nomeExibicao;
+        }
+        // Redirect to main page if already logged in
+        window.location.href = "/";
       } else {
-        console.log("nothing");
+        console.log("User not logged in");
       }
     });
   </script>
