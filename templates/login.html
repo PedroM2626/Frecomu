@@ -542,7 +542,14 @@
       
       this.disabled = true;
       this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Enviando...';
-      
+
+      if (typeof firebase === 'undefined' || !firebase.auth) {
+        showError("Erro: Firebase não carregado. Recarregue a página.");
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-key me-1"></i>Esqueceu a senha?';
+        return;
+      }
+
       firebase.auth().sendPasswordResetEmail(email)
         .then(() => {
           this.innerHTML = '<i class="fas fa-check me-1"></i>Email enviado!';
