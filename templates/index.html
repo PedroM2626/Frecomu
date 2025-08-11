@@ -66,9 +66,13 @@
 
               // Adicionar fallback para garantir que o nome apareça
               setTimeout(() => {
-                const checkUserName = document.getElementById("userName");
-                if (checkUserName && (!checkUserName.innerText || checkUserName.innerText === 'Usuário')) {
-                  checkUserName.innerText = nomeExibicao;
+                const checkUserNameText = document.getElementById("userNameText");
+                const checkLoadingSpinner = document.getElementById("userLoadingSpinner");
+                if (checkUserNameText && (!checkUserNameText.innerText || checkUserNameText.innerText === 'Carregando...')) {
+                  checkUserNameText.innerText = nomeExibicao;
+                }
+                if (checkLoadingSpinner) {
+                  checkLoadingSpinner.style.display = 'none';
                 }
               }, 1000);
             } else {
