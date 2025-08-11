@@ -1107,9 +1107,25 @@
       // Logout
       $("#logoutBtn").click(function(){
         socket.emit("leave", {username: username, room: room});
-        firebase.auth().signOut().then(() => {
+
+        // Check if Firebase is available before using it
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+          try {
+            firebase.auth().signOut().then(() => {
+              window.location.href = "/login";
+            }).catch((error) => {
+              console.error("Logout error:", error);
+              // Still redirect even if Firebase logout fails
+              window.location.href = "/login";
+            });
+          } catch (error) {
+            console.error("Firebase auth error during logout:", error);
+            window.location.href = "/login";
+          }
+        } else {
+          console.warn("Firebase not available, redirecting to login");
           window.location.href = "/login";
-        });
+        }
       });
       
       // Auto scroll to bottom
