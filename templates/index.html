@@ -43,7 +43,15 @@
               console.log('Usuario logado:', nomeExibicao); // Debug
 
               if (userNameElement) {
-                userNameElement.innerText = nomeExibicao;
+                const userNameText = document.getElementById("userNameText");
+                const loadingSpinner = document.getElementById("userLoadingSpinner");
+
+                if (userNameText) {
+                  userNameText.innerText = nomeExibicao;
+                }
+                if (loadingSpinner) {
+                  loadingSpinner.style.display = 'none';
+                }
                 userNameElement.style.opacity = '1';
                 userNameElement.style.transition = 'opacity 0.3s ease';
               }
