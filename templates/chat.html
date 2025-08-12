@@ -787,7 +787,7 @@
               </div>
               <div class="message-content">
                 {% if message.reply_to and message.parent %}
-                  <div class="reply-snippet" onclick="scrollToMessage({{ message.reply_to }})">
+                  <div class="reply-snippet" data-reply-to="{{ message.reply_to }}">
                     <i class="fas fa-reply me-1"></i>
                     <strong>{{ message.parent.username }}:</strong> {{ message.parent.msg }}
                   </div>
@@ -1031,7 +1031,7 @@
                 </div>
                 <div class="message-content">
                   ${data.reply_to ? `
-                    <div class="reply-snippet" onclick="scrollToMessage(${data.reply_to})">
+                    <div class="reply-snippet" data-reply-to="${data.reply_to}">
                       <i class="fas fa-reply me-1"></i>
                       <strong>${data.parent?.username || 'Usuário'}:</strong> ${data.parent?.msg || 'Mensagem removida'}
                     </div>` : ''}
@@ -1221,6 +1221,14 @@
         $("#reply-text").html(`<i class="fas fa-reply me-2"></i>Respondendo: ${replyMsg}`);
         $("#reply-preview").show();
         $("#mensagem").focus();
+      });
+
+      // Delegated handler for clicking on reply snippet to scroll to the original message
+      $(document).on("click", ".reply-snippet", function(){
+        const targetId = $(this).data("replyTo");
+        if (targetId !== undefined && targetId !== null && targetId !== "") {
+          scrollToMessage(targetId);
+        }
       });
       
       // Tratamento dos botões de upload de diferentes tipos de arquivos
