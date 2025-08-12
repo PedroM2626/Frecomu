@@ -3,6 +3,19 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Replit specific files
+.replit_zip_error_log.txt
+.upm/
+venv/
+.pythonlibs/
+.replit.nix
+poetry.lock
+.config/
+.cache/
+.local/
+.breakpoints
+replit.nix.bak
+
 # C extensions
 *.so
 

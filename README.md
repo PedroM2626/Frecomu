@@ -26,7 +26,27 @@ Permite que seus usuários:
 
 - Python 3.10+  
 - Git  
-- (Opcional) Virtualenv ou Conda  
+- (Opcional) Virtualenv ou Conda
+
+## 🌐 Deploy no Replit
+
+Este projeto está **totalmente configurado** para deploy no Replit! 
+
+### Deploy Rápido:
+1. Acesse [Replit](https://replit.com)
+2. Importe este repositório
+3. Configure as variáveis de ambiente em "Secrets"
+4. Adicione seu arquivo `firebase-adminsdk.json` na pasta `config/`
+5. Clique em "Run"
+
+📖 **Guia completo**: Veja [README_REPLIT.md](README_REPLIT.md) para instruções detalhadas.
+
+### Arquivos de Deploy:
+- `main.py` - Ponto de entrada para Replit
+- `.replit` - Configuração do ambiente
+- `replit.nix` - Definição do ambiente Nix
+- `pyproject.toml` - Gerenciamento de dependências
+- `test_replit.py` - Testes para verificar funcionamento  
 
 ---
 

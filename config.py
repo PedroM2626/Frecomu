@@ -22,6 +22,18 @@ class ProductionConfig(Config):
     DEBUG = False
     FLASK_ENV = 'production'
 
+class ReplitConfig(Config):
+    """Replit-specific configuration."""
+    DEBUG = False
+    FLASK_ENV = 'production'
+    # Use environment variables that Replit provides
+    SECRET_KEY = os.getenv('SECRET_KEY', os.urandom(24).hex())
+    # Replit uses ephemeral storage, so we'll use SQLite in memory or a persistent volume
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///frecomu.db')
+    UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', '/tmp/uploads')
+    # Ensure upload folder exists
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 class TestingConfig(Config):
     """Testing configuration."""
     TESTING = True
@@ -31,6 +43,7 @@ class TestingConfig(Config):
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
+    'replit': ReplitConfig,
     'testing': TestingConfig,
     'default': DevelopmentConfig
 }

@@ -26,7 +26,11 @@ app = Flask(__name__)
 
 # Load configuration
 from config import config
-config_name = os.getenv('FLASK_ENV', 'development')
+# Auto-detect Replit environment
+if os.getenv('REPL_ID') or os.getenv('REPLIT_DB_URL'):
+    config_name = 'replit'
+else:
+    config_name = os.getenv('FLASK_ENV', 'development')
 app.config.from_object(config[config_name])
 
 # Ensure upload folder exists
