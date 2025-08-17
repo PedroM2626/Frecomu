@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: frecomu
+    env: python
+    repo: https://github.com/SEU_USUARIO/Frecomu.git
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn --worker-class eventlet -w 1 app:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.13
+      - key: FLASK_APP
+        value: app.py
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: postgresql://frecomu_user:password@localhost:5432/frecomu_db
+      - key: UPLOAD_FOLDER
+        value: /opt/render/project/src/uploads
+    plan: free
